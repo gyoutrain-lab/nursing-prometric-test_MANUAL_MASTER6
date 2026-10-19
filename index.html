@@ -1,0 +1,3040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCFHS Prometric Nursing Exam Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 800: '#1e3a8a', 900: '#0f172a' },
+                        teal: { 600: '#0d9488', 700: '#0f766e' },
+                        emerald: { 600: '#059669', 700: '#047857' },
+                        gold: { 500: '#eab308', 600: '#ca8a04' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-teal-600 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-navy-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-teal-600 flex items-center justify-center font-bold text-white text-xl shadow-lg">S</div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white">SCFHS Prometric Nursing Simulator</h1>
+                    <p class="text-xs text-slate-400">Master Board Examination Prep Suite</p>
+                </div>
+            </div>
+            <div id="header-stats" class="hidden flex items-center gap-6 text-sm bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
+                <div>Timer: <span id="timer-display" class="font-mono font-bold text-gold-500">00:00:00</span></div>
+                <div>Progress: <span id="progress-display" class="font-bold text-teal-400">0/0</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+        <!-- SETUP VIEW -->
+        <div id="view-setup" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl max-w-2xl mx-auto w-full">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white mb-2">Configure Examination Session</h2>
+                <p class="text-slate-400 text-sm">Paste your complete JSON item bank below or use the built-in default bank, then select your test parameters.</p>
+            </div>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Question Bank JSON Data</label>
+                    <textarea id="json-input" rows="6" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-600" placeholder="Paste JSON array here... (Leave empty to use the loaded test items)"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Number of Questions</label>
+                        <select id="select-count" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-teal-600">
+                            <option value="20">20 Questions (Mini Quiz)</option>
+                            <option value="50">50 Questions (Standard Module)</option>
+                            <option value="100">100 Questions (Half Mock)</option>
+                            <option value="200" selected>200 Questions (Full Mock Exam)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Time Limit Mode</label>
+                        <select id="select-timelimit" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-teal-600">
+                            <option value="timed" selected>Timed Exam (Proportional)</option>
+                            <option value="untimed">Untimed Practice</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="startExam()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3.5 px-6 rounded-xl transition shadow-lg text-base">
+                    Start Examination
+                </button>
+            </div>
+        </div>
+
+        <!-- QUIZ VIEW -->
+        <div id="view-quiz" class="hidden space-y-6">
+            <!-- Top Nav & Palette Toggle -->
+            <div class="flex justify-between items-center bg-slate-800 border border-slate-700 px-4 py-3 rounded-xl">
+                <div id="question-domain" class="text-xs uppercase tracking-wider bg-teal-900/60 text-teal-300 border border-teal-700 px-3 py-1 rounded-full font-semibold">
+                    Domain
+                </div>
+                <button onclick="togglePalette()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
+                    Toggle Question Matrix
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                <!-- Question Card -->
+                <div class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+                    <div class="flex justify-between items-center text-sm text-slate-400 border-b border-slate-700 pb-3">
+                        <span id="question-number-label" class="font-bold text-white">Question 1 of 200</span>
+                        <span id="question-id-badge" class="font-mono text-xs bg-slate-700 px-2 py-1 rounded">ID: #1</span>
+                    </div>
+
+                    <div id="question-text" class="text-lg text-slate-100 font-medium leading-relaxed">
+                        <!-- Question text inserted dynamically -->
+                    </div>
+
+                    <div id="options-container" class="space-y-3">
+                        <!-- Options inserted dynamically -->
+                    </div>
+
+                    <!-- Rationale Box (Hidden until answered or reviewed) -->
+                    <div id="rational-box" class="hidden bg-slate-900 border border-teal-700/60 rounded-xl p-4 text-sm text-slate-300 space-y-2 mt-4">
+                        <div class="font-bold text-teal-400 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Clinical Rationale
+                        </div>
+                        <p id="rational-text" class="text-slate-300 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Controls Footer -->
+                    <div class="flex justify-between items-center pt-6 border-t border-slate-700">
+                        <button id="btn-prev" onclick="prevQuestion()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <div class="flex gap-3">
+                            <button id="btn-flag" onclick="toggleFlag()" class="bg-slate-700 hover:bg-slate-600 text-gold-500 border border-slate-600 px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+                                Flag for Review
+                            </button>
+                            <button id="btn-next" onclick="nextQuestion()" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question Matrix / Navigation Sidebar -->
+                <div id="palette-sidebar" class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-white">Question Navigator</h3>
+                        <span class="text-xs text-slate-400">Click to jump</span>
+                    </div>
+                    <div id="palette-grid" class="grid grid-cols-5 gap-2 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Palette buttons generated dynamically -->
+                    </div>
+                    <div class="pt-4 border-t border-slate-700 text-xs space-y-2 text-slate-400">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-teal-600 inline-block"></span> Answered</div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-gold-500 inline-block"></span> Flagged</div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-slate-700 inline-block"></span> Unanswered</div>
+                    </div>
+                    <button onclick="confirmSubmitExam()" class="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md">
+                        Finish & Submit Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULTS VIEW -->
+        <div id="view-results" class="hidden bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl max-w-2xl mx-auto w-full space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-bold text-white">Examination Summary</h2>
+                <p class="text-slate-400 text-sm">SCFHS Prometric Board Preparation Performance Report</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 bg-slate-900 p-6 rounded-xl border border-slate-700 text-center">
+                <div>
+                    <div class="text-xs uppercase text-slate-400 font-semibold mb-1">Final Score</div>
+                    <div id="res-score" class="text-4xl font-extrabold text-teal-400">0%</div>
+                </div>
+                <div>
+                    <div class="text-xs uppercase text-slate-400 font-semibold mb-1">Pass Status</div>
+                    <div id="res-status" class="text-2xl font-bold text-emerald-500">PASS</div>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-sm text-slate-300">
+                <div class="flex justify-between border-b border-slate-700 pb-2">
+                    <span>Total Questions Attempted:</span>
+                    <span id="res-total" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-700 pb-2">
+                    <span>Correct Answers:</span>
+                    <span id="res-correct" class="font-bold text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-700 pb-2">
+                    <span>Incorrect Answers:</span>
+                    <span id="res-incorrect" class="font-bold text-rose-400">0</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-700 pb-2">
+                    <span>Time Elapsed:</span>
+                    <span id="res-time" class="font-bold text-gold-500">00:00:00</span>
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+                <button onclick="reviewExam()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 rounded-xl transition text-sm">
+                    Review Questions
+                </button>
+                <button onclick="resetExam()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl transition text-sm">
+                    Configure New Exam
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 text-center text-xs text-slate-500 border-t border-slate-800">
+        SCFHS Prometric Examination Simulator &bull; Gyoutrain Lab Professional Education Suite
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Built-in sample item bank extracted from the generated parts for instant offline testing
+        const defaultItemBank = [
+{
+    "id": 1,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 56-year-old male is admitted to the ICU with an acute STEMI. At the 4th hour, he develops sudden dyspnea, bilateral crackles, BP 85/50 mmHg, HR 118 bpm, SpO2 88%, PAWP 22 mmHg, and Cardiac Index 1.7 L/min/m². Which complication and initial intervention are most appropriate?",
+    "options": [
+      "Cardiogenic Shock; administer positive inotropic infusion (Dobutamine) and consider IABP support.",
+      "Hypovolemic Shock; administer rapid crystalloid fluid bolus of 1000 mL within 30 minutes.",
+      "Cardiac Tamponade; perform emergent pericardiocentesis at the bedside.",
+      "Acute Pulmonary Embolism; administer bolus thrombolytic therapy with Alteplase."
+    ],
+    "correct": 0,
+    "rational": "Cardiogenic shock is defined by hypotension, CI < 2.2 L/min/m², and PAWP > 18 mmHg following MI. Management focuses on positive inotropic support."
+  },
+  {
+    "id": 2,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A Clinical Nurse Specialist is auditing compliance with NPSG Universal Protocol. Which sequence of mandatory steps must be executed prior to surgical incision?",
+    "options": [
+      "Sign-In before anesthesia, Sign-Out before closure, and Time-Out after the patient leaves OR.",
+      "Pre-procedure verification, Site Marking, and a Time-Out performed immediately prior to skin incision.",
+      "Site marking performed solely by circulating nurse, with identity verified after anesthesia induction.",
+      "Time-Out conducted in PACU with family members present."
+    ],
+    "correct": 1,
+    "rational": "Universal protocol involves pre-procedure verification, active site marking with the patient awake, and an immediate pre-incision Time-Out."
+  },
+  {
+    "id": 3,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "A trauma victim exhibits GCS 8, right chest wall bruising, absent breath sounds on the right hemithorax, hyperresonance, and tracheal deviation to the left. BP: 70/40 mmHg. Which emergency intervention must be performed immediately?",
+    "options": [
+      "Obtain an upright portable chest X-ray to confirm borders.",
+      "Perform immediate needle decompression at the 2nd/3rd intercostal space midclavicular line on the right.",
+      "Insert a 32 Fr chest tube connected to water-seal after ABG results.",
+      "Deliver high-frequency positive pressure ventilation via BVM."
+    ],
+    "correct": 1,
+    "rational": "Tension pneumothorax causes hemodynamic collapse and requires immediate needle decompression without waiting for radiological confirmation."
+  },
+  {
+    "id": 4,
+    "domain": "Critical Care & Hemodynamics",
+    "question": "A 62-year-old patient recovering from septic shock has PAWP 6 mmHg, CVP 3 mmHg, SVR 1600 dynes/sec/cm⁻⁵, and MAP 55 mmHg on Norepinephrine 0.1 mcg/kg/min. What is the primary collaborative action?",
+    "options": [
+      "Titrate upward Norepinephrine infusion until MAP reaches > 65 mmHg.",
+      "Administer an isotonic crystalloid fluid bolus according to intravascular volume rehydration protocols.",
+      "Initiate a Dobutamine infusion to enhance myocardial contractility.",
+      "Decrease Norepinephrine infusion and administer IV diuretics."
+    ],
+    "correct": 1,
+    "rational": "Low PAWP and CVP indicate relative hypovolemia; volume resuscitation via crystalloids is required before relying solely on vasopressors."
+  },
+  {
+    "id": 5,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "A post-CABG patient becomes unresponsive with polymorphic ventricular tachycardia (Torsades de Pointes) at 210 bpm and absent pulses. What is the priority emergency intervention?",
+    "options": [
+      "Perform synchronized cardioversion at 100 Joules.",
+      "Perform immediate unsynchronized defibrillation followed by high-quality CPR.",
+      "Administer Magnesium Sulfate 2 grams IV slow bolus over 10 minutes.",
+      "Administer Amiodarone 300 mg rapid IV bolus."
+    ],
+    "correct": 1,
+    "rational": "Pulseless VT is treated identically to VF under ACLS guidelines via immediate unsynchronized defibrillation and high-quality CPR."
+  },
+  {
+    "id": 6,
+    "domain": "Pediatric Critical Care",
+    "question": "A 3-year-old boy presents with severe respiratory distress, inspiratory stridor, deep retractions, drooling, and a tripod leaning position. Temperature is 38.8°C. Which emergency intervention is most appropriate?",
+    "options": [
+      "Perform immediate visual inspection of the throat using a tongue depressor.",
+      "Allow position of comfort, prepare emergency intubation equipment, and avoid invasive oral exams.",
+      "Administer racemic epinephrine via nebulizer and insert a peripheral IV line immediately.",
+      "Instruct parents to place the child supine for accurate auscultation."
+    ],
+    "correct": 1,
+    "rational": "Acute epiglottitis requires avoiding agitation or invasive oral exams to prevent complete laryngospasm and fatal airway obstruction."
+  },
+  {
+    "id": 7,
+    "domain": "Maternal & Women's Health",
+    "question": "A primipara delivers a term infant vaginally 30 minutes ago. The placenta delivers intact. The nurse notes heavy, bright red vaginal bleeding with a soft, boggy uterus above the umbilicus. What is the immediate priority?",
+    "options": [
+      "Perform fundal massage until firm and evaluate for bladder distension.",
+      "Prepare the patient for immediate surgical dilation and curettage (D&C).",
+      "Pack the vagina tightly with sterile gauze to tamponade active bleeding.",
+      "Assist the patient to ambulate to the bathroom to facilitate voiding."
+    ],
+    "correct": 0,
+    "rational": "Uterine atony requires vigorous fundal massage to stimulate myometrial contractions, along with assessing for bladder distension."
+  },
+  {
+    "id": 8,
+    "domain": "Mental Health Nursing",
+    "question": "A patient with paranoid schizophrenia exhibits severe psychomotor agitation and aggression. Verbal de-escalation fails, and physical restraints are ordered. Which legal and safety guideline governs their use?",
+    "options": [
+      "Physical restraints may remain applied continuously without re-evaluation.",
+      "Neurovascular checks, circulation, skin integrity, and range of motion must be assessed every 2 hours.",
+      "The patient should be left unattended in a seclusion room.",
+      "Physical restraints are utilized as a disciplinary measure."
+    ],
+    "correct": 1,
+    "rational": "Restraints require structured nursing assessments every 1 to 2 hours covering neurovascular status, circulation, and skin integrity."
+  },
+  {
+    "id": 9,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient on IV Heparin for DVT has an aPTT of 110 seconds, petechiae on lower extremities, and active gingival bleeding. Which collaborative action is required immediately?",
+    "options": [
+      "Temporarily discontinue Heparin, notify provider, and prepare Protamine Sulfate.",
+      "Increase Heparin infusion rate to dissolve microthrombi.",
+      "Administer intramuscular Vitamin K1.",
+      "Instruct patient to consume green leafy vegetables."
+    ],
+    "correct": 0,
+    "rational": "An aPTT of 110 seconds is supratherapeutic and dangerous; Heparin must be stopped and Protamine Sulfate prepared as its antagonist."
+  },
+  {
+    "id": 10,
+    "domain": "Community & Public Health",
+    "question": "A public health nurse assesses an urban district with high TB incidence, overcrowded housing, and poor ventilation. Which primary prevention program should be designed?",
+    "options": [
+      "Conduct mass microscopic sputum smear screenings.",
+      "Deliver health education regarding residential environmental modifications (sunlight/cross-ventilation) and respiratory hygiene.",
+      "Initiate long-term prophylactic ATT for non-exposed individuals.",
+      "Enforce strict total home quarantine for all district residents."
+    ],
+    "correct": 1,
+    "rational": "Primary prevention aims to prevent disease onset by promoting environmental controls (sunlight and cross-ventilation) and respiratory hygiene."
+  },
+  {
+    "id": 11,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 54-year-old male crash victim is confused, pale, and diaphoretic with BP 80/50 mmHg, HR 130 bpm, and free peritoneal fluid on FAST. What is the priority management?",
+    "options": [
+      "Initiate rapid transfusion of uncrossed O-negative blood products or MTP activation.",
+      "Administer continuous D5W infusion at 250 mL/hr.",
+      "Perform immediate bedside DPL before giving fluids.",
+      "Delay fluid resuscitation until CVP lines are secured."
+    ],
+    "correct": 0,
+    "rational": "Hemorrhagic shock requires blood product resuscitation and MTP activation rather than large crystalloid volumes."
+  },
+  {
+    "id": 12,
+    "domain": "Maternal & Women's Health",
+    "question": "A 34-week pregnant female presents with painless bright red vaginal bleeding. Fetal heart rate is 140 bpm. What diagnostic procedure is strictly contraindicated?",
+    "options": [
+      "Digital vaginal examination (bimanual pelvic exam).",
+      "Transabdominal ultrasound examination.",
+      "External electronic fetal monitoring.",
+      "Non-stress test (NST)."
+    ],
+    "correct": 0,
+    "rational": "Placenta previa presents with painless bleeding where digital exams can provoke catastrophic maternal hemorrhage."
+  },
+  {
+    "id": 13,
+    "domain": "Mental Health Nursing",
+    "question": "During the use of physical restraints for an agitated psychiatric patient, what is the standard monitoring frequency for neurovascular and skin checks?",
+    "options": [
+      "Every 8 hours during routine shift changes.",
+      "Every 1 to 2 hours.",
+      "Only when requested by the patient.",
+      "Every 12 hours."
+    ],
+    "correct": 1,
+    "rational": "Safety protocols mandate checking restraints every 1 to 2 hours to prevent injury or ischemia."
+  },
+  {
+    "id": 14,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient receiving Heparin has an aPTT of 110 seconds with active bleeding. What is the immediate reversal agent?",
+    "options": [
+      "Protamine Sulfate",
+      "Vitamin K",
+      "Fresh Frozen Plasma only",
+      "Calcium Gluconate"
+    ],
+    "correct": 0,
+    "rational": "Protamine sulfate is the specific chemical antagonist neutralizing heparin activity."
+  },
+  {
+    "id": 15,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "What is the recommended client position following a liver biopsy to minimize hemorrhage risk?",
+    "options": [
+      "Supine with the right side of the upper abdomen exposed / right lateral position[cite: 3, 4]",
+      "High Fowler's position",
+      "Trendelenburg position",
+      "Prone position"
+    ],
+    "correct": 0,
+    "rational": "Post-liver biopsy positioning requires lying on the right side to apply pressure to the puncture site."
+  },
+  {
+    "id": 16,
+    "domain": "Cardiovascular & Hemodynamic Nursing",
+    "question": "A patient exhibits bilateral JVD at 8 cm, peripheral pitting edema (+3), hepatic tenderness, and an S3 gallop. Which pathophysiological state is most consistent?",
+    "options": [
+      "Right-sided heart failure secondary to venous congestion.",
+      "Isolated left ventricular failure.",
+      "Acute hypovolemic shock.",
+      "Constrictive pericarditis."
+    ],
+    "correct": 0,
+    "rational": "JVD, dependent edema, and hepatomegaly are classic clinical manifestations of right-sided heart failure."
+  },
+  {
+    "id": 17,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A patient has active pulmonary MDR-TB. What PPE and room containment precautions must be enforced?",
+    "options": [
+      "Surgical mask and positive-pressure room.",
+      "Fit-tested N95 respirator, gloves, gown, and negative-pressure AIIR with ≥ 12 air exchanges/hr.",
+      "Face shield and droplet isolation room.",
+      "Sterile gown and contact precautions."
+    ],
+    "correct": 1,
+    "rational": "TB requires airborne precautions utilizing negative-pressure AIIR rooms and N95 respirators."
+  },
+  {
+    "id": 18,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "An AML patient undergoing chemotherapy develops a fever of 38.5°C with an ANC of 350 cells/mm³. What is the priority nursing action?",
+    "options": [
+      "Administer oral antipyretics and recheck in 4 hours.",
+      "Obtain blood cultures immediately and initiate empirical broad-spectrum IV antibiotics within 1 hour.",
+      "Encourage high oral fluids and restrict visitors.",
+      "Administer G-CSF subcutaneously and discharge."
+    ],
+    "correct": 1,
+    "rational": "Febrile neutropenia is a medical emergency requiring prompt blood cultures and empirical IV antibiotics within 60 minutes."
+  },
+  {
+    "id": 19,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A cirrhotic patient with bleeding esophageal varices has a Sengstaken-Blakemore tube inserted. Which bedside safety precaution is essential?",
+    "options": [
+      "Keep a pair of medical scissors at the bedside to cut and deflate balloons immediately if airway obstruction occurs.",
+      "Deflate esophageal balloon every 30 minutes.",
+      "Maintain continuous traction with 10 lb weight.",
+      "Instill 500 mL tap water into gastric balloon."
+    ],
+    "correct": 0,
+    "rational": "Scissors must be kept at the bedside to instantly cut lumens and deflate balloons if airway occlusion occurs."
+  },
+  {
+    "id": 20,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "Six hours post-tibial ORIF, a patient reports severe deep leg pain unresponsive to IV opioids. The calf is tense, and passive toe stretch elicits excruciating pain. What is the immediate priority?",
+    "options": [
+      "Elevate leg above heart level and apply ice.",
+      "Notify the surgeon immediately and prepare to loosen casts/dressings for compartment syndrome.",
+      "Administer breakthrough opioid analgesia.",
+      "Apply warm moist compresses."
+    ],
+    "correct": 1,
+    "rational": "Pain out of proportion and pain on passive stretch indicate acute compartment syndrome requiring immediate pressure relief."
+  },
+{
+    "id": 21,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 48-year-old female patient with acute pancreatitis reports sudden onset shortness of breath. The arterial blood gas analysis reveals pH 7.28, PaO2 52 mmHg, PaCO2 30 mmHg, and HCO3 16 mEq/L on high-flow oxygen. What is the priority collaborative intervention?",
+    "options": [
+      "Administer oral bronchodilator therapy and place the patient in a lateral recovery position.",
+      "Prepare the patient for immediate endotracheal intubation and mechanical ventilation with PEEP.",
+      "Initiate aggressive IV fluid boluses using normal saline at 500 mL per hour continuously.",
+      "Encourage deep breathing exercises using an incentive spirometer every two hours."
+    ],
+    "correct": 1,
+    "rational": "The client displays severe hypoxemic respiratory failure indicative of ARDS, requiring invasive mechanical ventilation with positive end-expiratory pressure (PEEP) to improve gas exchange."
+  },
+  {
+    "id": 22,
+    "domain": "Pediatric Critical Care",
+    "question": "A 4-year-old child presents to the emergency department with suspected bacterial meningitis. The child is irritable and exhibits a positive Kernig sign. Which infection control measure should be implemented immediately?",
+    "options": [
+      "Place the patient in a negative pressure isolation room with continuous HEPA filtration system.",
+      "Place the child in a private room and initiate droplet precautions for the first 24 hours of antibiotics.",
+      "Initiate standard precautions only while maintaining strict hand hygiene before touching the child.",
+      "Place the patient in contact isolation and restrict all family members from entering the unit."
+    ],
+    "correct": 1,
+    "rational": "Bacterial meningitis requires droplet precautions until effective antibiotic therapy has been administered for at least 24 hours to prevent transmission."
+  },
+  {
+    "id": 23,
+    "domain": "Maternal & Women's Health",
+    "question": "A 28-week pregnant client arrives with severe preeclampsia, BP 170/110 mmHg, and 3+ proteinuria. She is started on Magnesium Sulfate IV. Which assessment finding indicates impending magnesium toxicity?",
+    "options": [
+      "Deep tendon reflexes recorded at 0 with a diminished respiratory rate of 9 breaths per minute.",
+      "Serum magnesium level of 5.5 mEq/L accompanied by mild facial flushing and warmth.",
+      "Urine output recorded at 45 mL per hour over the last four consecutive hours.",
+      "Blood pressure decrease to 140/90 mmHg with reported relief of frontal headache."
+    ],
+    "correct": 0,
+    "rational": "Loss of deep tendon reflexes (0) and respiratory depression (<12 breaths/min) are classic signs of magnesium toxicity requiring immediate discontinuation of the infusion."
+  },
+  {
+    "id": 24,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A client diagnosed with atrial fibrillation is receiving a continuous intravenous Heparin infusion. The lab reports an activated partial thromboplastin time (aPTT) of 135 seconds. Which intervention should the nurse perform first?",
+    "options": [
+      "Increase the heparin infusion rate by 10 percent according to the standardized protocol.",
+      "Administer a stat dose of Vitamin K intravenously over five to ten minutes.",
+      "Stop the heparin infusion immediately and notify the healthcare provider of the value.",
+      "Continue the infusion rate unchanged and recheck the aPTT value in six hours."
+    ],
+    "correct": 2,
+    "rational": "An aPTT of 135 seconds is significantly above the therapeutic range, posing a severe risk of bleeding. The infusion must be stopped immediately."
+  },
+  {
+    "id": 25,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "A 30-year-old male is admitted with full-thickness burns covering his chest and upper abdomen. He is receiving fluid resuscitation. Which physiological parameter best indicates adequate fluid resuscitation?",
+    "options": [
+      "Urine output measured at 0.5 to 1.0 mL/kg/hour consistently over consecutive hours.",
+      "Systolic blood pressure maintained strictly above 140 mmHg throughout the first shift.",
+      "Central venous pressure reading maintained consistently between 15 and 18 mmHg.",
+      "Heart rate maintained steadily between 110 and 120 beats per minute at rest."
+    ],
+    "correct": 0,
+    "rational": "Urine output (0.5 to 1.0 mL/kg/hr in adults) is the most reliable indicator of adequate organ perfusion during fluid resuscitation in burn injury."
+  },
+  {
+    "id": 26,
+    "domain": "Mental Health Nursing",
+    "question": "A client diagnosed with bipolar disorder in a manic phase is pacing the hallway, shouting loudly, and disturbing other clients. What is the most appropriate initial nursing response?",
+    "options": [
+      "Isolate the client immediately in a seclusion room until calming medication takes full effect.",
+      "Accompany the client to a quiet area and speak calmly using short, concise sentences.",
+      "Confront the client directly regarding the disruptive behavior in front of peers.",
+      "Ignore the behavior to avoid reinforcing attention-seeking actions in the ward environment."
+    ],
+    "correct": 1,
+    "rational": "Reducing environmental stimuli and providing calm, simple communication helps de-escalate a client experiencing severe manic agitation."
+  },
+  {
+    "id": 27,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A bedside nurse notices that a medication error occurred, resulting in a patient receiving double the prescribed dose of antihypertensive medication. What is the primary ethical responsibility of the nurse?",
+    "options": [
+      "Document the event in the client's chart without informing the attending physician directly.",
+      "Assess the client's vital signs immediately, report the error, and file an incident report.",
+      "Monitor the client quietly for four hours before taking any official documentation actions.",
+      "Notify the nursing supervisor while omitting the drug name from the formal documentation."
+    ],
+    "correct": 1,
+    "rational": "Patient safety and professional duty require immediate assessment of the patient, direct disclosure/reporting, and completion of an incident report for quality improvement."
+  },
+  {
+    "id": 28,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "A patient suddenly becomes unresponsive in the cardiac care unit. The cardiac monitor displays fine ventricular fibrillation. What is the immediate priority intervention for the resuscitation team?",
+    "options": [
+      "Deliver high-flow oxygen via a non-rebreather mask and obtain emergency arterial blood gases.",
+      "Perform high-quality CPR continuously until intravenous access is successfully established.",
+      "Deliver an immediate unsynchronized shock using a defibrillator and resume CPR.",
+      "Administer intravenous Epinephrine 1 mg push every three to five minutes continuously."
+    ],
+    "correct": 2,
+    "rational": "Ventricular fibrillation requires immediate unsynchronized defibrillation combined with high-quality chest compressions to restore a perfusion rhythm."
+  },
+  {
+    "id": 29,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A patient with persistent fever and productive cough is suspected of having pulmonary tuberculosis. Which diagnostic test provides definitive confirmation of active infection?",
+    "options": [
+      "A positive purified protein derivative (PPD) skin test with 15 mm induration.",
+      "A chest radiograph demonstrating bilateral apical infiltrates and early cavitation.",
+      "A positive acid-fast bacilli (AFB) sputum culture identifying Mycobacterium tuberculosis.",
+      "An elevated erythrocyte sedimentation rate (ESR) combined with leukocytosis."
+    ],
+    "correct": 2,
+    "rational": "While skin tests and X-rays support diagnosis, a positive sputum culture for Mycobacterium tuberculosis is the definitive gold standard for active TB."
+  },
+  {
+    "id": 30,
+    "domain": "Community & Public Health",
+    "question": "A community health nurse is planning a primary prevention initiative for high school students regarding sexually transmitted infections (STIs). Which intervention best exemplifies primary prevention?",
+    "options": [
+      "Providing educational workshops on abstinence, safe sex practices, and barrier contraception.",
+      "Screening sexually active adolescents for Chlamydia and Gonorrhea using urine tests.",
+      "Administering prescribed antibiotic therapy to students diagnosed with active syphilis.",
+      "Establishing support groups for adolescents living with chronic human immunodeficiency virus."
+    ],
+    "correct": 0,
+    "rational": "Primary prevention focuses on health promotion and disease prevention prior to disease occurrence, such as educational programs on safe sexual practices."
+  },
+  {
+    "id": 31,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client with type 1 diabetes mellitus is found confused, diaphoteric, and trembling. The bedside blood glucose level reads 42 mg/dL. The client is conscious and able to swallow. What action should the nurse take first?",
+    "options": [
+      "Administer 50 mL of 50 percent Dextrose IV push over two to three minutes.",
+      "Provide 15 to 20 grams of fast-acting simple carbohydrates orally like orange juice.",
+      "Administer 1 mg of Glucagon subcutaneously into the deltoid muscle immediately.",
+      "Offer a full meal containing complex carbohydrates and high dietary protein content."
+    ],
+    "correct": 1,
+    "rational": "For a conscious hypoglycemic patient who can safely swallow, administering 15-20 grams of rapid-acting simple carbohydrate orally is the initial treatment of choice."
+  },
+  {
+    "id": 32,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A patient post-cholecystectomy has a T-tube in place. On day two post-op, the T-tube drains 300 mL of dark green bile. How should the nurse interpret and manage this finding?",
+    "options": [
+      "Recognize this as a normal expected output and continue to document and monitor.",
+      "Clamp the T-tube immediately and notify the surgeon of excessive biliary drainage.",
+      "Irrigate the T-tube with 50 mL of sterile normal saline solution using force.",
+      "Lower the drainage bag below the level of the bladder to increase gravity flow."
+    ],
+    "correct": 0,
+    "rational": "T-tube drainage of 200–500 mL/day of green-brown bile is expected in the immediate post-operative period following gallbladder surgery."
+  },
+  {
+    "id": 33,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A patient with a head injury has a Glasgow Coma Scale (GCS) score of 6. What is the most critical nursing intervention for this patient?",
+    "options": [
+      "Place the patient in a Trendelenburg position to improve cerebral perfusion pressure.",
+      "Maintain a clear airway and prepare for placement of an advanced airway device.",
+      "Perform a complete cranial nerve examination every fifteen minutes continuously.",
+      "Administer IV hypotonic fluid solutions to reduce intracerebral edema quickly."
+    ],
+    "correct": 1,
+    "rational": "A GCS score of 8 or lower indicates severe brain injury where airway reflexes are compromised; securing an advanced airway is the highest priority."
+  },
+  {
+    "id": 34,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A patient with chronic kidney disease presents with a serum potassium level of 6.8 mEq/L and ECG changes showing peaked T waves. What medication should the nurse prepare to administer first to stabilize the myocardium?",
+    "options": [
+      "Sodium Polystyrene Sulfonate orally to excrete potassium via the bowel.",
+      "Calcium Gluconate IV to protect the heart against potassium-induced arrhythmias.",
+      "Regular Insulin with 50% Dextrose IV to drive potassium into the cells.",
+      "Furosemide IV push to enhance urinary excretion of excess potassium ions."
+    ],
+    "correct": 1,
+    "rational": "Intravenous Calcium Gluconate immediately membrane-stabilizes cardiac myocytes to prevent life-threatening arrhythmias in severe hyperkalemia."
+  },
+  {
+    "id": 35,
+    "domain": "Respiratory Nursing",
+    "question": "A patient with severe chronic obstructive pulmonary disease (COPD) is receiving oxygen via nasal cannula at 2 L/min. Which physiological drive regulates respiration in this client?",
+    "options": [
+      "Elevated arterial carbon dioxide levels acting on central chemoreceptors.",
+      "Decreased arterial oxygen levels acting on peripheral chemoreceptors.",
+      "Increased serum bicarbonate concentration acting on peripheral receptors.",
+      "Decreased arterial blood pH acting directly on pulmonary stretch receptors."
+    ],
+    "correct": 1,
+    "rational": "Clients with chronic hypercapnia rely primarily on a hypoxic drive (low PaO2) measured by peripheral chemoreceptors to stimulate breathing."
+  },
+  {
+    "id": 36,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A patient is placed in Buck's skin traction following a hip fracture. Which nursing action is essential to ensure proper mechanical traction operation?",
+    "options": [
+      "Remove the traction weights for 15 minutes during physical hygiene care.",
+      "Allow the weights to hang freely without touching the floor or bed frame.",
+      "Adjust the traction ropes so that the pulleys touch the foot of the bed.",
+      "Turn the patient onto the affected side every two hours for skin care."
+    ],
+    "correct": 1,
+    "rational": "For skin traction to be effective, weights must hang freely at all times without touching the bed frame or floor."
+  },
+  {
+    "id": 37,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client receiving blood transfusion complains of sudden chills, fever, lower back pain, and shortness of breath ten minutes after initiation. What action should the nurse take first?",
+    "options": [
+      "Slow down the transfusion rate and administer prescribed oral antipyretics.",
+      "Stop the transfusion immediately and flush the line with normal saline.",
+      "Administer intravenous diphenhydramine and continue monitoring the infusion.",
+      "Notify the blood bank while maintaining the blood infusion at a slow rate."
+    ],
+    "correct": 1,
+    "rational": "These symptoms indicate an acute hemolytic or transfusion reaction. The transfusion must be stopped immediately to prevent further adverse consequences."
+  },
+  {
+    "id": 38,
+    "domain": "Perioperative Nursing",
+    "question": "A patient undergoing abdominal surgery under general anesthesia suddenly develops muscle rigidity, hypercapnia, and a rapidly rising body temperature. Which medication is the drug of choice for this condition?",
+    "options": [
+      "Atropine Sulfate IV",
+      "Dantrolene Sodium IV",
+      "Succinylcholine IV",
+      "Naloxone Hydrochloride IV"
+    ],
+    "correct": 1,
+    "rational": "Dantrolene Sodium is the specific skeletal muscle relaxant used to treat malignant hyperthermia."
+  },
+  {
+    "id": 39,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "Following a total right hip arthroplasty via a posterior approach, which leg positioning should the nurse maintain to prevent joint dislocation?",
+    "options": [
+      "Adduction and internal rotation using a firm bed pillow.",
+      "Abduction using an wedge pillow between the patient's legs.",
+      "Flexion of the right hip beyond 90 degrees with knee elevation.",
+      "External rotation of the affected leg with knee hyperextension."
+    ],
+    "correct": 1,
+    "rational": "An abduction pillow keeps the hip in neutral alignment, preventing adduction and internal rotation which can cause post-operative prosthesis dislocation."
+  },
+  {
+    "id": 40,
+    "domain": "Maternal & Women's Health",
+    "question": "A laboring client at 39 weeks gestation has an artificial rupture of membranes. The nurse observes umbilical cord prolapse in the vagina. What is the immediate priority nursing action?",
+    "options": [
+      "Place the patient in a high Fowler's position to assist gravity movement.",
+      "Exert upward manual pressure on the presenting part using a sterile gloved hand.",
+      "Cover the cord with dry sterile gauze and instruct the client to push.",
+      "Administer immediate oxytocin infusion to accelerate stage two labor."
+    ],
+    "correct": 1,
+    "rational": "Manual elevation of the fetal presenting part off the prolapsed umbilical cord maintains fetal blood perfusion until emergency cesarean section is performed."
+  },
+{
+    "id": 41,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 65-year-old male with a history of heart failure is admitted with acute pulmonary edema. He is extremely anxious, coughing up pink-frothy sputum, with BP 160/95 mmHg, HR 112 bpm, and SpO2 82% on room air. Which intervention should the nurse implement first?",
+    "options": [
+      "Administer high-flow supplemental oxygen and place the patient in an upright sitting position with legs dangling.",
+      "Insert a peripheral IV line and administer a rapid bolus of 1000 mL normal saline solution.",
+      "Encourage the patient to perform deep breathing exercises using an incentive spirometer.",
+      "Prepare the patient for immediate transfer to the general medical ward without respiratory support."
+    ],
+    "correct": 0,
+    "rational": "Immediate positioning in upright posture decreases venous return (preload) to the heart, while high-flow oxygen addresses acute hypoxemia in pulmonary edema."
+  },
+  {
+    "id": 42,
+    "domain": "Pediatric Critical Care",
+    "question": "An 18-month-old infant is admitted with acute dehydration secondary to rotavirus gastroenteritis. Which clinical indicator provides the most accurate assessment of the infant's hydration status?",
+    "options": [
+      "Daily measurement of the infant's body temperature via tympanic route.",
+      "Accurate measurement of body weight and monitoring of daily weight trends.",
+      "Evaluation of the anterior fontanelle size while the infant is crying vigorously.",
+      "Assessment of skin turgor over the dorsal aspect of the infant's hand."
+    ],
+    "correct": 1,
+    "rational": "Daily weight is the single most sensitive and accurate indicator of fluid loss or gain in pediatric patients experiencing dehydration."
+  },
+  {
+    "id": 43,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who delivered two hours ago experiences uterine atony unresponsive to initial fundal massage. The attending physician orders Methylergonovine maleate intramuscularly. Which underlying medical condition is a strict contraindication for this drug?",
+    "options": [
+      "Gestational diabetes mellitus controlled with dietary modifications.",
+      "Mild iron-deficiency anemia with a hemoglobin level of 10.5 g/dL.",
+      "Chronic hypertension with baseline blood pressure readings of 160/100 mmHg.",
+      "History of uncomplicated postpartum hemorrhage during a previous delivery."
+    ],
+    "correct": 2,
+    "rational": "Methylergonovine is a potent vasoconstrictor and is strictly contraindicated in clients with pre-existing or chronic hypertension due to the risk of severe hypertensive crisis."
+  },
+  {
+    "id": 44,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient with type 2 diabetes mellitus is scheduled for an elective computed tomography (CT) scan with intravenous iodinated contrast media. The patient takes Metformin daily. What is the most critical instruction regarding Metformin administration?",
+    "options": [
+      "Increase the Metformin dosage by 50 percent on the morning of the diagnostic procedure.",
+      "Take Metformin immediately before the procedure with a full glass of water.",
+      "Continue taking Metformin without interruption throughout the entire peri-procedural period.",
+      "Discontinue Metformin prior to or at the time of the procedure and withhold it for 48 hours post-procedure."
+    ],
+    "correct": 3,
+    "rational": "Iodinated contrast can cause temporary renal dysfunction, which combined with Metformin increases the risk of fatal lactic acidosis; Metformin must be withheld for 48 hours post-procedure."
+  },
+  {
+    "id": 45,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "A patient arrives at the emergency department following a motor vehicle collision with asymmetrical chest wall movement, severe respiratory distress, and diminished breath sounds on the left side. What is the priority nursing intervention?",
+    "options": [
+      "Prepare for emergency chest tube insertion to relieve a suspected hemothorax or pneumothorax.",
+      "Place the patient in a prone position to optimize posterior lung ventilation capacity.",
+      "Administer oral antitussive medications to suppress painful coughing episodes.",
+      "Apply warm compresses directly to the chest wall to relieve localized muscle spasms."
+    ],
+    "correct": 0,
+    "rational": "Asymmetrical chest movement and diminished breath sounds indicate compromised pleural space integrity, requiring prompt chest tube insertion for re-expansion."
+  },
+  {
+    "id": 46,
+    "domain": "Mental Health Nursing",
+    "question": "A patient diagnosed with major depressive disorder states, 'Nothing ever gets better, and everyone would be better off without me.' Which response by the nurse demonstrates the most therapeutic communication?",
+    "options": [
+      "Why do you feel that way when you have so many supportive family members?",
+      "Are you having thoughts of harming yourself or ending your life right now?",
+      "Do not worry about those thoughts; tomorrow is a brand new day.",
+      "Everyone feels overwhelmed sometimes; you just need to stay positive."
+    ],
+    "correct": 1,
+    "rational": "Directly and clearly asking about suicidal ideation is safe, essential, and recommended when a patient expresses feelings of hopelessness or worthlessness."
+  },
+  {
+    "id": 47,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A charge nurse on a medical-surgical unit is delegating daily tasks. Which task is appropriate to delegate to an Unlicensed Assistive Personnel (UAP)?",
+    "options": [
+      "Assessing the surgical wound dehiscence of a patient post-laparotomy.",
+      "Teaching self-administration techniques for subcutaneous insulin injections.",
+      "Obtaining routine vital sign measurements for a stable post-operative client.",
+      "Evaluating the effectiveness of newly prescribed oral pain medications."
+    ],
+    "correct": 2,
+    "rational": "UAPs can perform standardized, non-invasive tasks such as measuring vital signs in stable patients, whereas assessment, teaching, and evaluation require licensed nursing judgment."
+  },
+  {
+    "id": 48,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "A patient in the coronary care unit has an invasive arterial line inserted in the radial artery. What is the purpose of performing an Allen test prior to the cannulation procedure?",
+    "options": [
+      "To determine the exact systolic and diastolic blood pressure ranges.",
+      "To measure the functional oxygen saturation level of the radial artery.",
+      "To evaluate the patency of the radial artery lumen diameter.",
+      "To assess collateral blood flow to the hand via the ulnar artery."
+    ],
+    "correct": 3,
+    "rational": "The Allen test assesses collateral circulation (ulnar blood supply) to the hand to ensure hand perfusion if radial artery thrombosis occurs post-cannulation."
+  },
+  {
+    "id": 49,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is caring for a patient admitted with active varicella zoster (chickenpox). Which personal protective equipment and room placement must be established?",
+    "options": [
+      "Airborne and contact precautions in a negative-pressure isolation room.",
+      "Standard precautions in a standard multi-bed unit room.",
+      "Droplet precautions in a positive-pressure airflow room.",
+      "Protective reverse isolation to prevent opportunistic infections."
+    ],
+    "correct": 0,
+    "rational": "Varicella zoster is transmitted via airborne droplets and direct contact with lesions, requiring airborne and contact isolation in a negative-pressure room."
+  },
+  {
+    "id": 50,
+    "domain": "Community & Public Health",
+    "question": "A public health nurse is investigating an outbreak of foodborne illness traced to a local restaurant. Which activity represents secondary prevention in public health?",
+    "options": [
+      "Inspecting restaurant kitchen hygiene and food storage refrigeration units.",
+      "Screening exposed restaurant patrons for early symptoms of bacterial infection.",
+      "Providing public seminars on safe food handling and cooking temperatures.",
+      "Administering long-term rehabilitation therapy for chronic gastrointestinal damage."
+    ],
+    "correct": 1,
+    "rational": "Secondary prevention focuses on early case finding, screening, and prompt treatment of individuals exposed to or in early stages of disease."
+  },
+  {
+    "id": 51,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A patient with diabetic ketoacidosis (DKA) is admitted with blood glucose of 580 mg/dL, arterial pH 7.15, and serum potassium 3.2 mEq/L. Regular insulin infusion is prescribed. What is the priority nursing action before starting the insulin infusion?",
+    "options": [
+      "Administer a stat dose of oral glucose tablets to raise serum glucose.",
+      "Initiate immediate potassium replacement therapy until potassium is > 3.3 mEq/L.",
+      "Discontinue intravenous fluid hydration to prevent volume overload.",
+      "Administer Sodium Bicarbonate IV push regardless of blood gas values."
+    ],
+    "correct": 2,
+    "rational": "Insulin drives potassium into cells, which would worsen hypokalemia; potassium must be corrected above 3.3 mEq/L before starting insulin infusion."
+  },
+  {
+    "id": 52,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A patient with a nasogastric tube connected to low intermittent suction reports nausea and abdominal fullness. The nurse notes no drainage in the collection canister for two hours. What is the initial nursing action?",
+    "options": [
+      "Irrigate the nasogastric tube forcefully with 100 mL of sterile water.",
+      "Remove the nasogastric tube and reinsert it through the opposite naris.",
+      "Increase the wall suction pressure setting to high continuous suction.",
+      "Check tube placement, assess patency, and gently flush with 30 mL of normal saline."
+    ],
+    "correct": 3,
+    "rational": "Lack of drainage with nausea suggests tube blockage; the nurse should verify placement and gently flush with normal saline to restore patency."
+  },
+  {
+    "id": 53,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A patient is admitted following an acute ischemic stroke affecting the right middle cerebral artery (MCA). Which clinical manifestation should the nurse anticipate during the assessment?",
+    "options": [
+      "Left-sided hemiplegia and spatial-perceptual deficits.",
+      "Right-sided hemiparesis and expressive aphasia.",
+      "Bilateral lower extremity paralysis and urinary incontinence.",
+      "Inability to comprehend spoken language with normal motor function."
+    ],
+    "correct": 0,
+    "rational": "Stroke affects the contralateral side of the body. Right hemisphere (MCA) strokes typically cause left-sided hemiplegia and spatial-perceptual deficits."
+  },
+  {
+    "id": 54,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A patient undergoing maintenance hemodialysis has an arteriovenous (AV) fistula in the left forearm. Which nursing intervention is essential for protecting the vascular access?",
+    "options": [
+      "Obtain blood pressure measurements on the left arm every four hours.",
+      "Prohibit venipuncture and blood pressure cuff placement on the left arm.",
+      "Apply firm pressure dressings over the fistula site immediately post-dialysis.",
+      "Immobilize the left arm in a rigid splint for 48 hours post-creation."
+    ],
+    "correct": 1,
+    "rational": "To prevent thrombosis and protect the AV fistula, blood draws, IV lines, and blood pressure measurements on the access arm are strictly prohibited."
+  },
+  {
+    "id": 55,
+    "domain": "Respiratory Nursing",
+    "question": "An adult patient experiencing an acute asthma exacerbation has an arterial blood gas showing pH 7.48, PaCO2 30 mmHg, PaO2 65 mmHg, and HCO3 24 mEq/L. How should the nurse interpret these results?",
+    "options": [
+      "Metabolic alkalosis with adequate respiratory compensation.",
+      "Respiratory acidosis caused by alveolar hypoventilation.",
+      "Respiratory alkalosis resulting from hyperventilation.",
+      "Normal acid-base balance with mild hypoxemia."
+    ],
+    "correct": 2,
+    "rational": "Elevated pH (>7.45) and decreased PaCO2 (<35 mmHg) due to tachypnea/hyperventilation during an asthma attack indicate acute respiratory alkalosis."
+  },
+  {
+    "id": 56,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A patient with a short-arm plaster cast for a distal radius fracture reports a burning sensation and pressure under the cast. Which early finding indicates developing compartment syndrome?",
+    "options": [
+      "Absent radial pulse and completely cold fingers.",
+      "Total paralysis of the hand and wrist muscles.",
+      "Discoloration of the nail beds to deep cyanosis.",
+      "Pain out of proportion to the injury, unrelieved by opioid analgesics."
+    ],
+    "correct": 3,
+    "rational": "Pain out of proportion to the injury that is unresponsive to analgesics is the earliest and most reliable symptom of acute compartment syndrome."
+  },
+  {
+    "id": 57,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A patient receiving a vesicant chemotherapeutic agent via a peripheral IV line reports burning and stinging at the insertion site. The nurse observes swelling and no blood return. What is the immediate priority action?",
+    "options": [
+      "Stop the infusion immediately, disconnect the tubing, and notify the provider while preparing antidote instructions.",
+      "Flush the peripheral line rapidly with 20 mL of normal saline to clear remaining drug.",
+      "Apply warm moist compresses to the insertion site for thirty minutes.",
+      "Continue the infusion at a slower rate and monitor the site every 15 minutes."
+    ],
+    "correct": 0,
+    "rational": "Suspected extravasation of a vesicant requires immediate cessation of the infusion, leaving the cannula in place to aspirate residual drug and administer antidotes."
+  },
+  {
+    "id": 58,
+    "domain": "Perioperative Nursing",
+    "question": "A patient in the post-anesthesia care unit (PACU) complains of severe nausea and vomiting. Which immediate nursing action should be prioritized to prevent airway complications?",
+    "options": [
+      "Administer prescribed antiemetic medication and offer sips of ice water.",
+      "Turn the patient immediately onto their side to prevent aspiration of vomitus.",
+      "Raise the head of the bed to a high Fowler's position.",
+      "Insert an oral airway device and apply positive pressure ventilation."
+    ],
+    "correct": 1,
+    "rational": "The immediate priority when a post-op patient vomits is to turn them on their side (lateral recovery position) to prevent pulmonary aspiration."
+  },
+  {
+    "id": 59,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "A nurse is preparing to insert a nasogastric tube in an adult patient. To facilitate correct anatomical passage through the nasopharynx into the esophagus, how should the patient be positioned?",
+    "options": [
+      "Flat supine with the neck fully hyperextended.",
+      "Trendelenburg position with a pillow under the shoulders.",
+      "High Fowler's position with the neck slightly flexed forward once the tube reaches the pharynx.",
+      "Left lateral Sims position with the knees flexed toward the chest."
+    ],
+    "correct": 2,
+    "rational": "High Fowler's position utilizes gravity, and flexing the head forward closes the trachea and opens the esophagus during tube advancement."
+  },
+  {
+    "id": 60,
+    "domain": "Maternal & Women's Health",
+    "question": "A 52-year-old female client reports hot flashes, irregular menstrual cycles, and mood disturbances. The healthcare provider diagnoses menopause. Which physiological hormonal change is primarily responsible?",
+    "options": [
+      "Increased secretion of luteinizing hormone from the anterior pituitary gland.",
+      "Sustained elevation of serum progesterone and human placental lactogen.",
+      "Surging levels of circulating estradiol and circulating testosterone.",
+      "Decreased estrogen production resulting from age-related ovarian follicular depletion."
+    ],
+    "correct": 3,
+    "rational": "Menopause is characterized by ovarian follicular exhaustion, resulting in significantly decreased estrogen and inhibin levels, leading to elevated FSH/LH."
+  },
+{
+    "id": 61,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 58-year-old male with acute kidney injury is admitted to the ICU with severe hyperkalemia (K+ 7.2 mEq/L) and ECG changes showing tall peaked T waves and widened QRS complexes. Which medication should be administered first to prevent immediate cardiac arrest?",
+    "options": [
+      "Calcium Gluconate 10% IV slow push over 2 to 5 minutes.",
+      "Sodium Polystyrene Sulfonate (Kayexalate) 30 g orally.",
+      "Regular Insulin 10 Units IV with 50 mL of Dextrose 50%.",
+      "Furosemide 80 mg IV push to promote renal excretion."
+    ],
+    "correct": 0,
+    "rational": "Calcium gluconate antagonizes the toxic effect of hyperkalemia on cardiac cell membranes, immediately stabilizing the myocardium to prevent life-threatening arrhythmias."
+  },
+  {
+    "id": 62,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A charge nurse is reviewing error prevention protocols. According to SBAR clinical communication guidelines, what information belongs under the 'Assessment' component when reporting a deteriorating patient to an attending physician?",
+    "options": [
+      "I recommend transferring the patient to the Intensive Care Unit immediately.",
+      "The patient was admitted two days ago following an elective total hip replacement.",
+      "Current vital signs are BP 82/45 mmHg, HR 128 bpm, SpO2 86%, and lungs have bilateral crackles.",
+      "This is Nurse Mary from Ward 3 caring for Mr. Ahmed in Bed 12."
+    ],
+    "correct": 2,
+    "rational": "The Assessment (A) in SBAR includes current clinical findings, vital signs, physical examination data, and changes in patient condition."
+  },
+  {
+    "id": 63,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "A 40-year-old trauma victim is brought to the emergency department after a high-speed vehicle crash. The nurse notes paradoxical inward movement of the right anterior chest wall during inhalation and outward movement during exhalation. Which condition should be suspected?",
+    "options": [
+      "Simple open pneumothorax without vascular compromise.",
+      "Flail chest secondary to multiple consecutive rib fractures.",
+      "Cardiac tamponade from blunt traumatic force.",
+      "Spontaneous tension pneumothorax with tracheal shift."
+    ],
+    "correct": 1,
+    "rational": "Flail chest occurs when a segment of the thoracic cage is separated from the rest of the chest wall due to double fractures on at least two consecutive ribs, producing paradoxical chest wall movement."
+  },
+  {
+    "id": 64,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "A patient with an implantable cardioverter-defibrillator (ICD) experiences a shock while sitting in a chair. The monitor now shows normal sinus rhythm at 72 bpm, and the patient is conscious and asymptomatic. What is the immediate nursing action?",
+    "options": [
+      "Initiate high-quality CPR compressions immediately for two minutes.",
+      "Perform emergency synchronized cardioversion at 50 Joules.",
+      "Assess vital signs, maintain continuous cardiac monitoring, and notify the cardiologist.",
+      "Apply external defibrillator pads and deliver a manual 200 J shock."
+    ],
+    "correct": 2,
+    "rational": "If the ICD delivers a shock and successfully restores sinus rhythm without current patient distress, the nurse should assess the client, keep them monitored, and contact the specialist."
+  },
+  {
+    "id": 65,
+    "domain": "Pediatric Critical Care",
+    "question": "A 6-month-old infant with Tetralogy of Fallot becomes acutely cyanotic, hyperpneic, and agitated during a blood draw (hypercyanotic 'Tet' spell). What is the primary nursing intervention?",
+    "options": [
+      "Place the infant in a knee-chest position to increase systemic vascular resistance.",
+      "Administer IV fluid bolus of normal saline at 50 mL/kg within 5 minutes.",
+      "Place the infant supine with legs elevated above heart level.",
+      "Perform immediate bag-valve-mask ventilation with room air."
+    ],
+    "correct": 0,
+    "rational": "Flexing the knees to the chest increases systemic vascular resistance, decreasing the right-to-left shunt across the VSD and forcing more blood into the pulmonary circulation."
+  },
+  {
+    "id": 66,
+    "domain": "Maternal & Women's Health",
+    "question": "A 32-week pregnant female presents with severe continuous abdominal pain, dark red vaginal bleeding, and a rigid, board-like abdomen. Uterine hypertonicity is noted on telemetry. Which condition is most likely?",
+    "options": [
+      "Total Placenta Previa",
+      "Premature Rupture of Membranes",
+      "Abruptio Placentae",
+      "Uterine Inversion"
+    ],
+    "correct": 2,
+    "rational": "Abruptio placentae is characterized by premature separation of the placenta presenting with painful dark vaginal bleeding, uterine tenderness, hypertonia, and a board-like abdomen."
+  },
+  {
+    "id": 67,
+    "domain": "Mental Health Nursing",
+    "question": "A client taking Phenelzine (MAOI) for major depressive disorder attends a community dinner. Which menu selection poses the highest risk of triggering a hypertensive crisis?",
+    "options": [
+      "Aged cheddar cheese, cured salami, and red wine sauce.",
+      "Grilled chicken breast with steamed white rice and broccoli.",
+      "Fresh green salad with olive oil and vinegar dressing.",
+      "Baked white fish served with boiled potatoes and carrots."
+    ],
+    "correct": 0,
+    "rational": "Monoamine oxidase inhibitors (MAOIs) restrict tyramine breakdown; consuming high-tyramine foods like aged cheeses, cured meats, and red wines leads to dangerous catecholamine release and hypertensive crisis."
+  },
+  {
+    "id": 68,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient receiving continuous intravenous Infusion of Digoxin for heart failure develops nausea, visual halos around light fixtures, and a heart rate of 42 bpm. Which therapeutic agent is the specific antidote?",
+    "options": [
+      "Flumazenil",
+      "Digoxin Immune Fab (Digibind)",
+      "Naloxone",
+      "Atropine Sulfate"
+    ],
+    "correct": 1,
+    "rational": "Digoxin Immune Fab binds circulating digoxin molecules, making them inactive and reversing severe digoxin toxicity and severe bradyarrhythmias."
+  },
+  {
+    "id": 69,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is caring for a patient diagnosed with Clostridioides difficile enterocolitis. Which hand hygiene method is mandatory after providing direct bedside care?",
+    "options": [
+      "Rubbing hands thoroughly with alcohol-based hand sanitizer for 20 seconds.",
+      "Washing hands with antimicrobial soap and water at a sink.",
+      "Rinsing hands with sterile normal saline solution.",
+      "Using non-alcohol antiseptic hand wipes."
+    ],
+    "correct": 1,
+    "rational": "C. difficile produces bacterial endospores that are resistant to alcohol rub sanitizers; hands must be mechanically washed using soap and water to physically remove spores."
+  },
+  {
+    "id": 70,
+    "domain": "Community & Public Health",
+    "question": "A occupational health nurse conducts ergonomic assessments and hearing protection workshops for industrial factory workers. Which level of prevention is being implemented?",
+    "options": [
+      "Secondary Prevention",
+      "Primary Prevention",
+      "Tertiary Prevention",
+      "Quaternary Prevention"
+    ],
+    "correct": 1,
+    "rational": "Primary prevention involves interventions targeted at preventing the onset of injury or illness through health promotion and protection strategies before risk factors cause damage."
+  },
+  {
+    "id": 71,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A patient who underwent a total thyroidectomy 24 hours ago reports tingling sensations around the mouth (perioral paresthesia) and muscle twitching. The nurse notes a positive Chvostek sign. Which laboratory finding confirms the underlying cause?",
+    "options": [
+      "Serum Calcium 6.2 mg/dL",
+      "Serum Potassium 3.0 mEq/L",
+      "Serum Sodium 128 mEq/L",
+      "Serum Magnesium 3.1 mg/dL"
+    ],
+    "correct": 0,
+    "rational": "Accidental surgical excision or damage to the parathyroid glands during thyroidectomy leads to hypocalcemia, causing neuromuscular hyperexcitability (Chvostek and Trousseau signs)."
+  },
+  {
+    "id": 72,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A patient with severe liver cirrhosis presents with worsening hepatic encephalopathy. The physician prescribes Lactulose orally. What primary outcome indicates the therapeutic effectiveness of Lactulose?",
+    "options": [
+      "Formed, firm stools once every three days.",
+      "Two to three soft bowel movements per day with decreased serum ammonia levels.",
+      "Decreased direct bilirubin levels and absence of jaundice.",
+      "Increase in serum albumin concentration above 4.0 g/dL."
+    ],
+    "correct": 1,
+    "rational": "Lactulose traps ammonia in the gut and promotes soft bowel movements (2-3/day) to excrete toxic nitrogenous waste in hepatic encephalopathy."
+  },
+  {
+    "id": 73,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A patient with an invasive intracranial pressure (ICP) monitor has a baseline ICP of 12 mmHg. The nurse notes ICP spike to 28 mmHg during repositioning. Which action is appropriate to lower ICP back to baseline?",
+    "options": [
+      "Flex the client's knees and hips toward the abdomen.",
+      "Place the patient in Trendelenburg position immediately.",
+      "Maintain head and neck in neutral alignment and elevate the head of the bed to 30 degrees.",
+      "Perform endotracheal suctioning vigorously every 15 minutes."
+    ],
+    "correct": 2,
+    "rational": "Elevating the HOB to 30 degrees with head in neutral midline alignment facilitates venous drainage from the head, reducing intracranial pressure."
+  },
+  {
+    "id": 74,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A patient with oliguric acute kidney injury (AKI) receives fluid restriction calculations. If the total fluid output for the previous 24 hours was 450 mL, what is the calculated fluid allowance for the next 24 hours using standard fluid replacement guidelines?",
+    "options": [
+      "450 mL total",
+      "950 mL total",
+      "1450 mL total",
+      "2000 mL total"
+    ],
+    "correct": 1,
+    "rational": "Fluid allowance in AKI is calculated by replacing the previous day's measured fluid losses (450 mL) plus adding 500 mL to cover insensible fluid losses (450 + 500 = 950 mL)."
+  },
+  {
+    "id": 75,
+    "domain": "Respiratory Nursing",
+    "question": "A patient with a right-sided closed chest tube system has continuous brisk bubbling in the water-seal chamber. What does this finding indicate?",
+    "options": [
+      "Normal expected suction operation in a closed chest drainage system.",
+      "An air leak within the drainage system or pleural space.",
+      "Complete re-expansion of the right lung.",
+      "Occlusion or kinking of the chest tube lumen."
+    ],
+    "correct": 1,
+    "rational": "Continuous bubbling in the water-seal chamber indicates an air leak between the patient and the chamber, whereas intermittent bubbling during exhalation/coughing is expected with a pneumothorax."
+  },
+  {
+    "id": 76,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A patient who sustained a compound femur fracture 36 hours ago suddenly develops petechiae over the chest and neck, acute confusion, and dyspnea with SpO2 84%. What condition should the nurse suspect?",
+    "options": [
+      "Deep Vein Thrombosis",
+      "Fat Embolism Syndrome",
+      "Acute Respiratory Syncytial Virus",
+      "Hypovolemic Shock"
+    ],
+    "correct": 1,
+    "rational": "Fat embolism syndrome typically occurs 24-72 hours after long bone fractures, presenting with a classic triad: hypoxemia, neurological changes (confusion), and petechial rash across the upper body."
+  },
+  {
+    "id": 77,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A patient with advanced lung cancer develops Superior Vena Cava (SVC) Syndrome. Which clinical signs are most characteristic of this oncological emergency?",
+    "options": [
+      "Edema of the face, neck, and upper chest with distended neck veins.",
+      "Severe lower extremity pitting edema and ascites.",
+      "Paresthesia in both feet and loss of deep tendon reflexes.",
+      "Severe lumbar back pain radiating down both thighs."
+    ],
+    "correct": 0,
+    "rational": "SVC syndrome is caused by obstruction of venous return from the upper body, causing facial and neck edema, distended jugular and thoracic veins, and dyspnea."
+  },
+  {
+    "id": 78,
+    "domain": "Perioperative Nursing",
+    "question": "During a surgical procedure, the circulating nurse notes a breach in sterile technique when an unsterile scrub member touches a sterile instrument tray. What immediate action must the circulating nurse take?",
+    "options": [
+      "Report the breach to the hospital infection control officer after the operation.",
+      "Wipe the affected tray with an alcohol-based disinfectant solution immediately.",
+      "Point out the contamination immediately and ensure all contaminated items are replaced.",
+      "Allow the procedure to continue if the patient is receiving IV antibiotics."
+    ],
+    "correct": 2,
+    "rational": "Any breach in surgical asepsis must be corrected immediately by speaking up, stopping contact with contaminated items, and replacing all contaminated equipment."
+  },
+  {
+    "id": 79,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "A client is scheduled for a lumbar puncture to obtain cerebrospinal fluid. How should the nurse position the patient during the procedure?",
+    "options": [
+      "Prone with head turned to the side and legs extended.",
+      "Lateral recumbent position with knees drawn up to abdomen and chin flexed to chest.",
+      "High Fowler's position with arms resting over a bedside table.",
+      "Supine with knees supported on two pillows."
+    ],
+    "correct": 1,
+    "rational": "A side-lying 'C-curve' position (knees flexed to abdomen, head tucked to chest) arches the spine, widening the intervertebral spaces for needle insertion."
+  },
+  {
+    "id": 80,
+    "domain": "Maternal & Women's Health",
+    "question": "A nurse is evaluating a non-stress test (NST) in a term fetus. What criteria define a 'reactive' non-stress test?",
+    "options": [
+      "Absence of fetal heart rate decelerations during contractions.",
+      "At least two fetal heart rate accelerations of 15 bpm above baseline lasting 15 seconds within 20 minutes.",
+      "Persistent fetal heart rate variability under 5 bpm over a 40-minute period.",
+      "Continuous baseline fetal heart rate between 90 and 110 bpm."
+    ],
+    "correct": 1,
+    "rational": "A reactive NST requires two or more accelerations reaching a peak of at least 15 bpm above baseline and lasting at least 15 seconds (15x15) within a 20-minute window."
+  },
+{
+    "id": 81,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 52-year-old male is admitted to the ICU following an acute anterior myocardial infarction. On physical assessment, the nurse notes bibasilar crackles, an S3 heart sound, jugular venous distention, and cold, clammy extremities. Which classification of acute heart failure best fits these findings?",
+    "options": [
+      "Killip Class IV with severe cardiogenic shock.",
+      "Killip Class III presenting with frank acute pulmonary edema.",
+      "Killip Class I with no clinical signs of heart failure.",
+      "Killip Class II with rales over less than half of the lung fields."
+    ],
+    "correct": 1,
+    "rational": "Killip Class III is defined by the development of overt pulmonary edema with rales over more than half of the lung fields, S3 gallop, and congestion."
+  },
+  {
+    "id": 82,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A hospital nursing unit is implementing Root Cause Analysis (RCA) following a near-miss medication administration event. What is the primary objective of conducting an RCA?",
+    "options": [
+      "To assign individual disciplinary blame and determine termination actions.",
+      "To identify underlying systemic and process vulnerabilities that allowed the error to occur.",
+      "To comply with minimum legal requirements for public reporting without changing workflow.",
+      "To decrease the financial insurance liability of the institutional healthcare facility."
+    ],
+    "correct": 1,
+    "rational": "Root Cause Analysis is a systemic problem-solving methodology aimed at uncovering latent systemic workflow flaws rather than punishing individuals."
+  },
+  {
+    "id": 83,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult pedestrian struck by a vehicle is evaluated using Advanced Trauma Life Support (ATLS) guidelines. During the primary survey (ABCDE), what is the primary focus of the 'C' assessment?",
+    "options": [
+      "Checking patency of the upper airway and inspecting for foreign body obstruction.",
+      "Evaluating cervical spine stability and applying a rigid hard collar.",
+      "Assessing hemorrhagic shock, stopping active external bleeding, and checking central pulses.",
+      "Assessing neurological disability using the AVPU or GCS scale."
+    ],
+    "correct": 2,
+    "rational": "In ATLS primary survey, 'C' stands for Circulation, focusing on identifying hemorrhage, assessing perfusion status, and controlling active bleeding sources."
+  },
+  {
+    "id": 84,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "An adult patient is brought to the emergency department in ventricular fibrillation. After the first unsynchronized shock is delivered and CPR is resumed for two minutes, rhythm check reveals persistent VF/pulseless VT. What medication and dosage should be given next?",
+    "options": [
+      "Atropine 1 mg IV push every 3 minutes.",
+      "Amiodarone 300 mg rapid IV/IO push.",
+      "Adenosine 6 mg rapid IV push.",
+      "Procainamide 50 mg/min continuous infusion."
+    ],
+    "correct": 1,
+    "rational": "For refractory VF/pulseless VT after initial shocks and CPR, Amiodarone 300 mg IV push (followed by a second dose of 150 mg if needed) is the standard ACLS recommendation."
+  },
+  {
+    "id": 85,
+    "domain": "Pediatric Critical Care",
+    "question": "A 2-year-old child is admitted with acute dehydration and metabolic acidosis. The nurse calculates the maintenance fluid requirement using the 24-hour Holliday-Segar method. For a child weighing 12 kg, what is the total daily maintenance fluid volume?",
+    "options": [
+      "1000 mL per day",
+      "1100 mL per day",
+      "1350 mL per day",
+      "1500 mL per day"
+    ],
+    "correct": 1,
+    "rational": "Using the Holliday-Segar formula: 100 mL/kg for the first 10 kg (1000 mL) + 50 mL/kg for the next 2 kg (100 mL), totaling 1100 mL per 24 hours."
+  },
+  {
+    "id": 86,
+    "domain": "Maternal & Women's Health",
+    "question": "A multiparous client at 38 weeks gestation is receiving an oxytocin infusion for labor induction. During contraction monitoring, the nurse notes late decelerations in fetal heart rate accompanying three consecutive contractions. What is the priority nursing action?",
+    "options": [
+      "Increase the oxytocin infusion rate by 2 mU/min to accelerate labor progress.",
+      "Discontinue the oxytocin infusion immediately, turn the client to the left lateral position, and administer oxygen.",
+      "Prepare the client for immediate amniocentesis to test fetal lung maturity.",
+      "Place the client in supine position and encourage pushing efforts."
+    ],
+    "correct": 1,
+    "rational": "Late decelerations indicate uteroplacental insufficiency. Immediate interventions include stopping oxytocin, lateral positioning, IV fluid bolus, and supplemental oxygen."
+  },
+  {
+    "id": 87,
+    "domain": "Mental Health Nursing",
+    "question": "A patient with schizophrenia tells the nurse, 'The FBI microchips implanted in my teeth are broadcasting my thoughts to the television broadcast network.' How should the nurse therapeutically respond?",
+    "options": [
+      "Acknowledge that the feeling is real to the patient while stating that the nurse does not experience those broadcasts.",
+      "Argue logically that FBI microchips do not exist and explain how dental fillings work.",
+      "Tell the patient that television networks never broadcast individual citizen thoughts.",
+      "Pretend to listen and agree that the FBI is monitoring the patient closely."
+    ],
+    "correct": 0,
+    "rational": "Validating the patient's internal experience without reinforcing false beliefs or arguing reality builds therapeutic trust during active psychosis."
+  },
+  {
+    "id": 88,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A client is prescribed Warfarin for prophylaxis following mechanical heart valve replacement. Which laboratory test is used to monitor the therapeutic efficacy of Warfarin therapy?",
+    "options": [
+      "Activated Partial Thromboplastin Time (aPTT)",
+      "International Normalized Ratio (INR)",
+      "Bleeding Time (Ivy method)",
+      "Platelet aggregation count"
+    ],
+    "correct": 1,
+    "rational": "Warfarin therapy is monitored using the International Normalized Ratio (INR), typically targeted between 2.0 and 3.0 for standard mechanical heart valves."
+  },
+  {
+    "id": 89,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is providing discharge instructions to a client treated for active pulmonary tuberculosis. When is the client considered no longer infectious to household contacts?",
+    "options": [
+      "Immediately upon returning home after hospital discharge.",
+      "After completing the full six-month multidrug regimen.",
+      "When three consecutive sputum smear test results collected on separate days are negative for AFB.",
+      "When the tuberculin skin test conversion turns completely negative."
+    ],
+    "correct": 2,
+    "rational": "A patient with pulmonary TB is considered non-infectious after three consecutive negative AFB sputum smears collected on different days combined with clinical improvement."
+  },
+  {
+    "id": 90,
+    "domain": "Community & Public Health",
+    "question": "A community health nurse organizes a stroke screening and blood pressure hypertension awareness fair at a local senior center. Which level of prevention does this screening program represent?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Primordial Prevention"
+    ],
+    "correct": 1,
+    "rational": "Screening programs aim at early detection and prompt intervention for asymptomatic individuals or those in early disease stages, defining secondary prevention."
+  },
+  {
+    "id": 91,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A patient with Graves' disease is admitted in Thyroid Storm with a temperature of 40.2°C, heart rate 158 bpm, tremors, and agitation. Which medication is contraindicated in the management of this patient?",
+    "options": [
+      "Propylthiouracil (PTU) orally",
+      "Propranolol hydrochloride intravenously",
+      "Acetylsalicylic Acid (Aspirin) orally for fever",
+      "Potassium Iodide oral solution (Lugol's)"
+    ],
+    "correct": 2,
+    "rational": "Aspirin is contraindicated because it binds to thyroid-binding globulins, displacing active thyroid hormones and worsening free serum hormone levels."
+  },
+  {
+    "id": 92,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A patient with severe acute pancreatitis is admitted to the medical ICU. Which serum laboratory enzyme elevation correlates most specifically with acute pancreatic cellular injury?",
+    "options": [
+      "Serum Lipase",
+      "Serum Alkaline Phosphatase",
+      "Serum Alanine Aminotransferase (ALT)",
+      "Serum Creatinine Kinase MB (CK-MB)"
+    ],
+    "correct": 0,
+    "rational": "Serum lipase is more specific and remains elevated longer than amylase in acute pancreatic injury."
+  },
+  {
+    "id": 93,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A patient presents with sudden right-sided facial drooping, slurred speech, and right arm weakness starting 90 minutes ago. Non-contrast head CT is negative for intracranial hemorrhage. What is the priority collaborative treatment?",
+    "options": [
+      "Administer IV recombinant tissue plasminogen activator (rt-PA) within the therapeutic window.",
+      "Initiate immediate antiplatelet therapy with high-dose Aspirin and Clopidogrel.",
+      "Perform emergent mechanical carotid endarterectomy within 2 hours.",
+      "Administer Mannitol 20% IV push to reduce cerebral edema."
+    ],
+    "correct": 0,
+    "rational": "For acute ischemic stroke within the 3 to 4.5-hour window without hemorrhage contraindications, IV alteplase (rt-PA) is the standard standard of care."
+  },
+  {
+    "id": 94,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A patient with chronic kidney disease asks why erythropoietin-stimulating agents (ESAs) like Epoetin alfa have been prescribed. What is the physiological rationale?",
+    "options": [
+      "To stimulate the bone marrow to produce red blood cells and correct anemia caused by renal failure.",
+      "To decrease serum potassium levels by enhancing gastrointestinal excretion.",
+      "To prevent secondary hyperparathyroidism and maintain calcium-phosphorus balance.",
+      "To reduce systemic arterial blood pressure by vasodilating renal arterioles."
+    ],
+    "correct": 0,
+    "rational": "The failing kidneys produce insufficient erythropoietin, leading to normocytic anemia; exogenous ESAs stimulate erythropoiesis in the bone marrow."
+  },
+  {
+    "id": 95,
+    "domain": "Respiratory Nursing",
+    "question": "A patient undergoing mechanical ventilation is scheduled for endotracheal suctioning. Which safety practice must the nurse observe during the suction procedure?",
+    "options": [
+      "Apply negative suction pressure while inserting the catheter into the endotracheal tube.",
+      "Perform suctioning continuously for 30 seconds per pass to clear all secretions.",
+      "Pre-oxygenate the patient with 100% oxygen and limit suction passes to 10 to 15 seconds.",
+      "Instill 10 mL of sterile water routinely into every patient prior to suctioning."
+    ],
+    "correct": 2,
+    "rational": "Suctioning causes hypoxemia; nurses must pre-oxygenate with 100% O2 and restrict suction duration to 10–15 seconds while withdrawing the catheter intermittently."
+  },
+  {
+    "id": 96,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A patient returns from surgery following an above-knee amputation (AKA). During the first 24 hours post-op, how should the nurse position the residual limb?",
+    "options": [
+      "Elevate the residual limb on a pillow continuously to minimize swelling.",
+      "Keep the residual limb flat on the mattress and avoid prolonged hip flexion to prevent flexion contractures.",
+      "Place the patient in a prone position for 12 hours straight.",
+      "Hang the residual limb over the edge of the bed to promote drainage."
+    ],
+    "correct": 1,
+    "rational": "Elevating the stump on pillows beyond 24 hours can cause hip flexion contractures; keeping it flat on the bed prevents this complication."
+  },
+  {
+    "id": 97,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A patient undergoing chemotherapy reports severe oral ulcerations and mucositis causing painful swallowing. Which nursing intervention is most appropriate for oral care?",
+    "options": [
+      "Encourage vigorous brushing with a hard-bristled toothbrush after every meal.",
+      "Provide frequent mouth rinses using warm saline or sodium bicarbonate solutions and soft sponge swabs.",
+      "Prescribe commercial alcohol-based mouthwash for antiseptic cleaning.",
+      "Instruct the patient to consume highly spiced and acidic citrus foods to stimulate saliva."
+    ],
+    "correct": 1,
+    "rational": "Gentle oral care using soft sponges and non-alcoholic saline or sodium bicarbonate rinses relieves mucositis without causing mucosal trauma."
+  },
+  {
+    "id": 98,
+    "domain": "Perioperative Nursing",
+    "question": "A post-operative patient on day two following abdominal surgery reports sudden sharp chest pain and severe shortness of breath. Vital signs: HR 125 bpm, RR 32 bpm, BP 90/60 mmHg, SpO2 84% on room air. Which diagnostic test is diagnostic for pulmonary embolism?",
+    "options": [
+      "Computed Tomography Pulmonary Angiography (CTPA)",
+      "Standard 12-lead Electrocardiogram (ECG)",
+      "Portable Upright Chest Radiogram",
+      "Abdominal Ultrasound scan"
+    ],
+    "correct": 0,
+    "rational": "CT Pulmonary Angiography (CTPA) is the gold standard imaging modality for visualizing pulmonary emboli within the pulmonary arterial tree."
+  },
+  {
+    "id": 99,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "What is the recommended client positioning immediately following a liver biopsy to minimize post-procedure hemorrhage risk?",
+    "options": [
+      "High Fowler's position at 60 degrees upright",
+      "Right lateral decubitus position with a small pillow under the puncture site",
+      "Prone position with a firm sandbag beneath the abdomen",
+      "Trendelenburg position with head tilted downward"
+    ],
+    "correct": 1,
+    "rational": "Lying on the right side applies mechanical hepatic pressure against the abdominal wall, tamponading the needle biopsy site to prevent hemorrhage[cite: 3, 4]."
+  },
+  {
+    "id": 100,
+    "domain": "Maternal & Women's Health",
+    "question": "A nurse is caring for a newborn infant immediately after delivery. What is the priority nursing intervention in the delivery room?",
+    "options": [
+      "Administer Vitamin K intramuscularly into the vastus lateralis.",
+      "Establish and maintain a patent airway and maintain neonatal thermoregulation.",
+      "Administer erythromycin ophthalmic ointment into both eyes.",
+      "Perform a complete physical anthropometric measurement of length and head circumference."
+    ],
+    "correct": 1,
+    "rational": "Immediate newborn care focuses on airway clearing, stimulation, and drying/warming to prevent hypothermia under the ABC resuscitation framework."
+  },
+{
+    "id": 101,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 60-year-old male is admitted to the ICU with severe sepsis secondary to community-acquired pneumonia. His blood pressure is 80/45 mmHg, heart rate 130 bpm, serum lactate 4.5 mmol/L, and urine output 15 mL/hr over the last two hours despite an initial 30 mL/kg crystalloid fluid bolus. Which intervention should the nurse anticipate next?",
+    "options": [
+      "Initiate a continuous infusion of Norepinephrine to maintain a Mean Arterial Pressure (MAP) of at least 65 mmHg.",
+      "Administer a second rapid crystalloid fluid bolus of 2000 mL normal saline within 20 minutes.",
+      "Initiate a continuous infusion of high-dose intravenous Beta-blockers to decrease myocardial oxygen demand.",
+      "Prepare the patient for immediate emergency hemodialysis catheter placement."
+    ],
+    "correct": 0,
+    "rational": "In septic shock refractory to fluid resuscitation, vasopressors (primarily Norepinephrine) are initiated to restore vascular tone and target a MAP >= 65 mmHg."
+  },
+  {
+    "id": 102,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A newly licensed nurse is assigned to care for four clients on a medical-surgical unit. Which client should the nurse assess first?",
+    "options": [
+      "A client with type 2 diabetes mellitus requesting a bedtime snack and oral hypoglycemic medication.",
+      "A client scheduled for discharge tomorrow who is asking questions about home dietary restrictions.",
+      "A client with chronic obstructive pulmonary disease who has an oxygen saturation of 91% on 2 L/min nasal cannula.",
+      "A client post-thyroidectomy who reports a tight feeling in the throat and frequent swallowing."
+    ],
+    "correct": 3,
+    "rational": "Using the ABC / urgent prioritization framework, a post-thyroidectomy client reporting throat tightness and frequent swallowing may indicate developing laryngeal edema or hemorrhage, threatening the airway."
+  },
+  {
+    "id": 103,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult trauma patient involved in a motorcycle collision presents with a rigid abdomen, rebound tenderness, hypotension, and tachycardia. A FAST exam reveals significant free fluid in the peritoneal cavity. What is the priority collaborative action?",
+    "options": [
+      "Transfer the patient immediately to the operating room for exploratory laparotomy.",
+      "Perform a diagnostic peritoneal lavage (DPL) and wait for laboratory confirmation.",
+      "Order a series of upright abdominal X-rays to check for free air under the diaphragm.",
+      "Administer oral laxatives and place a nasogastric tube for decompression."
+    ],
+    "correct": 0,
+    "rational": "Signs of acute internal hemorrhage with a positive FAST scan and hemodynamic instability require immediate surgical intervention via exploratory laparotomy."
+  },
+  {
+    "id": 104,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "A client is admitted to the telemetry unit with symptomatic bradycardia at 38 bpm, dizziness, and cool, pale skin. Atropine 0.5 mg IV push is administered, but the heart rate remains 40 bpm with no clinical improvement. What is the next priority intervention?",
+    "options": [
+      "Administer a second dose of Atropine 1.0 mg IV push immediately.",
+      "Prepare for immediate transcutaneous cardiac pacing.",
+      "Initiate a continuous infusion of Amiodarone 1 mg/min.",
+      "Perform synchronized cardioversion at 100 Joules."
+    ],
+    "correct": 1,
+    "rational": "When symptomatic bradycardia is unresponsive to Atropine, transcutaneous pacing is the next recommended ACLS intervention."
+  },
+  {
+    "id": 105,
+    "domain": "Pediatric Critical Care",
+    "question": "A 3-year-old child is brought to the pediatric emergency department having a tonic-clonic seizure lasting longer than five minutes (status epilepticus). IV access cannot be established immediately. Which medication and route should the nurse administer first?",
+    "options": [
+      "Oral Diazepam solution swallowed slowly.",
+      "Rectal Diazepam gel or Intranasal Midazolam.",
+      "Subcutaneous Phenobarbital injection.",
+      "Intramuscular Magnesium sulfate."
+    ],
+    "correct": 1,
+    "rational": "In pediatric status epilepticus without IV access, rectal diazepam or intranasal midazolam provides rapid absorption to terminate seizure activity."
+  },
+  {
+    "id": 106,
+    "domain": "Maternal & Women's Health",
+    "question": "A primigravida at 39 weeks gestation is in active labor. The fetal heart rate tracing shows uniform early decelerations mirroring the uterine contractions, with a baseline of 140 bpm and moderate variability. How should the nurse interpret this pattern?",
+    "options": [
+      "Fetal hypoxia caused by acute umbilical cord compression.",
+      "Uteroplacental insufficiency requiring immediate emergency cesarean delivery.",
+      "Benign fetal head compression during uterine contractions requiring no special intervention.",
+      "Severe fetal metabolic acidosis requiring fetal scalp blood pH testing."
+    ],
+    "correct": 2,
+    "rational": "Early decelerations are benign findings caused by head compression against the pelvis during contractions, requiring only continued routine monitoring."
+  },
+  {
+    "id": 107,
+    "domain": "Mental Health Nursing",
+    "question": "A client diagnosed with obsessive-compulsive disorder (OCD) spends hours washing hands, resulting in raw, bleeding skin. What is the most appropriate initial nursing intervention for this client?",
+    "options": [
+      "Immediately lock the bathroom door to prevent access to water and soap.",
+      "Allow time for the ritual while gradually setting limits and structuring alternative activities.",
+      "Tell the client that handwashing is illogical and completely unnecessary.",
+      "Apply physical restraints to the client's hands to stop the behavior."
+    ],
+    "correct": 1,
+    "rational": "Abruptly stopping compulsions increases severe anxiety; the nurse should allow structured time for rituals initially and gradually introduce limit-setting and replacement activities."
+  },
+  {
+    "id": 108,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient with heart failure is prescribed Spironolactone. Which dietary instruction is essential for this patient?",
+    "options": [
+      "Increase daily intake of green leafy vegetables high in vitamin K.",
+      "Avoid salt substitutes containing potassium chloride and limit high-potassium foods.",
+      "Supplement daily diet with extra citrus fruits and bananas.",
+      "Eliminate all dairy products to prevent calcium binding."
+    ],
+    "correct": 1,
+    "rational": "Spironolactone is a potassium-sparing diuretic that can cause severe hyperkalemia; patients must avoid potassium supplements and salt substitutes containing potassium."
+  },
+  {
+    "id": 109,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is preparing to care for a client diagnosed with pulmonary tuberculosis. Which respirator mask must the nurse wear to ensure adequate personal protection?",
+    "options": [
+      "Standard disposable surgical procedure mask.",
+      "Fit-tested N95 or higher particulate respirator mask.",
+      "Cloth fabric face mask with triple lining.",
+      "Clear plastic face shield without a mask."
+    ],
+    "correct": 1,
+    "rational": "Airborne precautions for tuberculosis require healthcare workers to wear a fit-tested N95 or higher-level respirator mask upon entering the room."
+  },
+  {
+    "id": 110,
+    "domain": "Community & Public Health",
+    "question": "A public health nurse implements a community-wide vaccination campaign against seasonal influenza. Which level of prevention does this immunization program represent?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Quaternary Prevention"
+    ],
+    "correct": 0,
+    "rational": "Vaccinations protect healthy individuals from contracting infectious diseases, exemplifying primary prevention."
+  },
+  {
+    "id": 111,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client with Addison's disease (primary adrenal insufficiency) experiences acute adrenal crisis due to a recent infection. Which clinical manifestation should the nurse anticipate?",
+    "options": [
+      "Severe hypertension, hyperglycemia, and hypernatremia.",
+      "Profound hypotension, vascular collapse, hyponatremia, and hyperkalemia.",
+      "Bradycardia, weight gain, and peripheral edema.",
+      "Hyperactivity, heat intolerance, and exophthalmos."
+    ],
+    "correct": 1,
+    "rational": "Adrenal crisis is characterized by acute glucocorticoid and mineralocorticoid deficiency, leading to severe hypotension, shock, hyponatremia, and hyperkalemia."
+  },
+  {
+    "id": 112,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A client with acute upper gastrointestinal bleeding due to peptic ulcer disease is admitted. Which diagnostic procedure is the gold standard for identifying the bleeding source and enabling targeted hemostatic therapy?",
+    "options": [
+      "Barium swallow fluoroscopy",
+      "Diagnostic upper gastrointestinal endoscopy (EGD)",
+      "Abdominal ultrasound scan",
+      "Plain abdominal radiography (KUB)"
+    ],
+    "correct": 1,
+    "rational": "Upper endoscopy (EGD) allows direct visualization of the upper GI tract, precise identification of bleeding lesions, and therapeutic interventions like clipping or cautery."
+  },
+  {
+    "id": 113,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A client with a basilar skull fracture exhibits clear fluid draining from the right external auditory meatus. Which bedside test confirms that the fluid contains cerebrospinal fluid (CSF)?",
+    "options": [
+      "Testing the fluid with commercial urine dipstick for glucose.",
+      "Allowing the fluid to drop on filter paper and observing for a yellow 'halo' ring surrounding blood.",
+      "Measuring the specific gravity of the fluid using a urinometer.",
+      "Checking the pH of the fluid using litmus paper."
+    ],
+    "correct": 1,
+    "rational": "CSF contains glucose and forms a characteristic 'halo sign' (a central blood stain surrounded by a clear yellowish ring) when dropped on filter paper."
+  },
+  {
+    "id": 114,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A client with chronic kidney disease undergoes hemodialysis three times a week. During dialysis, the client suddenly reports dizziness, nausea, and develops hypotension (BP 85/50 mmHg). What is the immediate nursing action?",
+    "options": [
+      "Increase the ultrafiltration rate to remove more fluid.",
+      "Stop or slow down the blood pump and administer a bolus of isotonic normal saline.",
+      "Administer oral antihypertensive medications immediately.",
+      "Place the client in high Fowler's position."
+    ],
+    "correct": 1,
+    "rational": "Dialysis hypotension is treated by slowing or stopping ultrafiltration, returning blood, placing the client in Trendelenburg position, and infusing normal saline boluses."
+  },
+  {
+    "id": 115,
+    "domain": "Respiratory Nursing",
+    "question": "A client is receiving mechanical ventilation on synchronized intermittent mandatory ventilation (SIMV) mode. Which statement accurately describes this ventilation mode?",
+    "options": [
+      "The ventilator delivers all breaths at a fixed volume and rate, completely overriding spontaneous breaths.",
+      "The ventilator delivers preset breaths at a set rate but allows the client to breathe spontaneously between machine breaths without mandatory support.",
+      "The client initiates every single breath, and the ventilator provides no mandatory back-up rate.",
+      "The machine delivers high-frequency oscillating pressure waves."
+    ],
+    "correct": 1,
+    "rational": "SIMV delivers preset mandatory breaths synchronized with the patient's inspiratory effort while permitting spontaneous breathing between ventilator breaths."
+  },
+  {
+    "id": 116,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A client with a long leg plaster cast reports severe throbbing pain in the right foot that is unresponsive to prescribed opioid analgesics. The nurse notes cool toes, sluggish capillary refill, and inability to wiggle the toes. What condition must be suspected?",
+    "options": [
+      "Superficial skin irritation",
+      "Acute compartment syndrome",
+      "Normal post-operative inflammatory edema",
+      "Mild peripheral neuropathy"
+    ],
+    "correct": 1,
+    "rational": "Unrelieved pain, pallor, pulselessness, paresthesia, and paralysis in a casted limb are classic signs of acute compartment syndrome requiring urgent intervention."
+  },
+  {
+    "id": 117,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client with acute myeloid leukemia has a platelet count of 18,000 /mm³. Which nursing intervention is essential for this client?",
+    "options": [
+      "Encourage flossing with a stiff-bristled toothbrush after meals.",
+      "Implement bleeding precautions, including using an electric razor and soft toothbrush, and avoiding IM injections.",
+      "Administer aspirin for mild headaches.",
+      "Encourage vigorous contact sports to maintain physical activity."
+    ],
+    "correct": 1,
+    "rational": "Severe thrombocytopenia (<20,000/mm³) requires strict bleeding precautions to prevent spontaneous hemorrhaging and trauma."
+  },
+  {
+    "id": 118,
+    "domain": "Perioperative Nursing",
+    "question": "A client in the PACU exhibits stridor, crowing respirations, and acute respiratory distress following thyroid surgery. What is the priority emergency action?",
+    "options": [
+      "Administer intravenous pain medication.",
+      "Prepare for emergency re-intubation or tracheostomy due to possible acute laryngeal obstruction.",
+      "Administer sublingual nitroglycerin.",
+      "Apply warm compresses to the neck incision."
+    ],
+    "correct": 1,
+    "rational": "Stridor and crowing respirations post-thyroid surgery indicate acute upper airway obstruction from laryngeal edema or nerve damage, requiring emergency airway management."
+  },
+  {
+    "id": 119,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "A client is ordered to receive an enema to prepare for diagnostic testing. What is the correct client positioning during the administration of the enema solution?",
+    "options": [
+      "Sims' left lateral position with the right knee flexed upward",
+      "High Fowler's position upright at 90 degrees",
+      "Supine position with legs fully extended flat",
+      "Prone position flat on the abdomen"
+    ],
+    "correct": 0,
+    "rational": "Sims' left lateral position allows enema solution to flow downward by gravity along the natural anatomical curve of the sigmoid colon and rectum."
+  },
+  {
+    "id": 120,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who gave birth vaginally eight hours ago has saturated three perineal pads within an hour. The uterus is boggy and located above the umbilicus. What is the immediate nursing intervention?",
+    "options": [
+      "Massage the uterine fundus until firm and express accumulated clots[cite: 3, 4].",
+      "Prepare the client for emergency blood transfusion[cite: 3, 4].",
+      "Insert an indwelling urinary catheter immediately[cite: 3, 4].",
+      "Administer oral iron supplements[cite: 3, 4]."
+    ],
+    "correct": 0,
+    "rational": "A boggy uterus with heavy bleeding indicates postpartum uterine atony; immediate fundal massage stimulates myometrial contraction to stop the bleeding[cite: 3, 4]."
+  },
+{
+    "id": 121,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 65-year-old male with septic shock is receiving Norepinephrine infusion via a peripheral IV line in the right hand. The nurse observes blanching, coolness, and swelling at the insertion site. What is the immediate priority nursing action?",
+    "options": [
+      "Slow the infusion rate by half and apply warm compresses.",
+      "Stop the infusion immediately, disconnect the tubing, and notify the provider while preparing Phentolamine for infiltration.",
+      "Flush the peripheral line rapidly with 10 mL of normal saline to clear the drug.",
+      "Leave the line running and apply a tight elastic pressure bandage over the site."
+    ],
+    "correct": 1,
+    "rational": "Vasopressor extravasation causes severe tissue ischemia and necrosis; the infusion must be stopped immediately, and an alpha-adrenergic blocker like Phentolamine should be infiltrated into the affected tissue."
+  },
+  {
+    "id": 122,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A charge nurse is conducting a shift handover report. Using the SBAR communication tool, which statement correctly represents the 'Background' element?",
+    "options": [
+      "I recommend that the physician review the morning electrolyte lab results and adjust IV potassium replacement.",
+      "The client was admitted three days ago with community-acquired pneumonia and has a history of asthma.",
+      "Current vital signs are BP 130/80 mmHg, HR 88 bpm, RR 18 breaths per minute, and SpO2 96% on room air.",
+      "This is Nurse John from Ward 4 calling about Mr. Smith in Bed 8."
+    ],
+    "correct": 1,
+    "rational": "The Background (B) in SBAR provides relevant clinical history, admission diagnosis, and pertinent past medical background preceding the current acute event."
+  },
+  {
+    "id": 123,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult patient is brought to the trauma center following a high-speed motor vehicle collision. The patient is restless, pale, and tachycardic with a blood pressure of 75/40 mmHg. Which intravenous fluid resuscitation strategy is currently recommended for hemorrhagic shock in trauma before surgical hemostasis?",
+    "options": [
+      "Massive transfusion protocol utilizing blood products (PRBCs, plasma, platelets) in a 1:1:1 ratio.",
+      "Rapid infusion of 3 Liters of D5W within 30 minutes to restore intracellular fluid volume.",
+      "Strict restriction of all fluids until central venous pressure reaches 15 mmHg.",
+      "Infusion of hypotonic saline solution at 500 mL/hr to rehydrate tissues."
+    ],
+    "correct": 0,
+    "rational": "Current damage control resuscitation guidelines for hemorrhagic shock prioritize early blood product administration in a balanced 1:1:1 ratio rather than large volumes of crystalloids."
+  },
+  {
+    "id": 124,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "During cardiac arrest resuscitation, the cardiac monitor displays Asystole. What is the priority intervention for the resuscitation team?",
+    "options": [
+      "Perform immediate synchronized cardioversion at 200 Joules.",
+      "Administer high-quality CPR and Epinephrine 1 mg IV push every 3 to 5 minutes.",
+      "Deliver an immediate unsynchronized defibrillation shock.",
+      "Administer Atropine 1 mg IV push as a continuous infusion."
+    ],
+    "correct": 1,
+    "rational": "Asystole is a non-shockable rhythm; treatment focuses on immediate high-quality chest compressions, airway management, and Epinephrine administration every 3–5 minutes."
+  },
+  {
+    "id": 125,
+    "domain": "Pediatric Critical Care",
+    "question": "A 4-year-old child weighing 16 kg is admitted with severe dehydration. Calculate the 24-hour maintenance fluid requirement using the Holliday-Segar method.",
+    "options": [
+      "1000 mL per day",
+      "1200 mL per day",
+      "1300 mL per day",
+      "1500 mL per day"
+    ],
+    "correct": 2,
+    "rational": "Using the Holliday-Segar formula: 100 mL/kg for the first 10 kg (1000 mL) + 50 mL/kg for the next 6 kg (300 mL) = 1300 mL total per 24 hours."
+  },
+  {
+    "id": 126,
+    "domain": "Maternal & Women's Health",
+    "question": "A primigravida at 40 weeks gestation presents in active labor. The nurse notes variable decelerations in the fetal heart rate tracing with a rapid drop and return to baseline. What is the most appropriate initial nursing intervention?",
+    "options": [
+      "Reposition the client immediately to the side or knee-chest position to relieve umbilical cord compression.",
+      "Prepare the client for immediate vacuum-assisted vaginal delivery.",
+      "Increase oxytocin infusion rate to accelerate delivery progress.",
+      "Administer intravenous magnesium sulfate to stop uterine contractions."
+    ],
+    "correct": 0,
+    "rational": "Variable decelerations are characteristic of umbilical cord compression; changing maternal position relieves pressure on the cord."
+  },
+  {
+    "id": 127,
+    "domain": "Mental Health Nursing",
+    "question": "A client with major depressive disorder who has been expressing suicidal ideation is prescribed Amitriptyline (Tricyclic Antidepressant). Which nursing safety precaution is most critical when dispensing this medication?",
+    "options": [
+      "Dispense a strict 90-day supply to encourage independent compliance.",
+      "Instruct the family to store the medication in an unrestricted kitchen cabinet.",
+      "Limit the total quantity of medication dispensed due to the high lethality risk associated with TCA overdose.",
+      "Encourage the client to take the entire daily dose in the morning."
+    ],
+    "correct": 2,
+    "rational": "Tricyclic antidepressants have a narrow therapeutic window and are extremely cardiotoxic in overdose; limiting prescription quantities is vital for suicide prevention."
+  },
+  {
+    "id": 128,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A client is prescribed Digoxin 0.25 mg orally daily for heart failure. Before administering the dose, the nurse checks the apical pulse and finds a rate of 52 bpm. What is the priority nursing action?",
+    "options": [
+      "Administer the medication as prescribed and recheck the pulse in one hour.",
+      "Withhold the dose, notify the healthcare provider, and document the heart rate.",
+      "Double the dose to counteract the bradycardia.",
+      "Crush the tablet and mix it with orange juice for faster absorption."
+    ],
+    "correct": 1,
+    "rational": "Digoxin should be withheld if the adult apical pulse is less than 60 bpm to prevent severe digitalis toxicity and life-threatening arrhythmias."
+  },
+  {
+    "id": 129,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is caring for a client with active pulmonary tuberculosis. Which engineering control and room environment must be maintained?",
+    "options": [
+      "Positive pressure airflow isolation room with HEPA filtration.",
+      "Negative pressure isolation room (AIIR) with a minimum of 12 air exchanges per hour.",
+      "Standard private room with open windows facing outward.",
+      "Reverse protective isolation room with ultraviolet germicidal irradiation."
+    ],
+    "correct": 1,
+    "rational": "Airborne isolation rooms (AIIR) must maintain negative air pressure relative to the corridor to prevent infectious droplet nuclei from escaping into common areas."
+  },
+  {
+    "id": 130,
+    "domain": "Community & Public Health",
+    "question": "A public health nurse provides cardiac rehabilitation counseling, lifestyle modification classes, and supervised exercise regimens for clients recovering from myocardial infarctions. Which level of prevention is being applied?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Primordial Prevention"
+    ],
+    "correct": 2,
+    "rational": "Tertiary prevention focuses on managing existing chronic conditions, rehabilitation, and preventing further complications or disability after disease onset."
+  },
+  {
+    "id": 131,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client with type 1 diabetes mellitus is admitted with diabetic ketoacidosis (DKA). The nurse initiates an IV infusion of Regular Insulin. What is the primary mechanism of action of insulin in treating DKA?",
+    "options": [
+      "Stimulates glycogenolysis and gluconeogenesis in hepatic tissue.",
+      "Inhibits cellular glucose uptake while stimulating lipolysis.",
+      "Promotes cellular uptake of glucose, suppresses lipolysis, and stops hepatic ketogenesis.",
+      "Blocks renal glucose reabsorption in the proximal convoluted tubules."
+    ],
+    "correct": 2,
+    "rational": "Insulin halts ketogenesis by suppressing lipolysis and hepatic ketogenesis while driving glucose into cells and lowering blood sugar."
+  },
+  {
+    "id": 132,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A client with acute pancreatitis is placed on strict NPO status and has a nasogastric tube connected to intermittent suction. What is the primary physiological rationale for maintaining NPO status?",
+    "options": [
+      "To prevent gastrointestinal bleeding from esophageal varices.",
+      "To minimize pancreatic enzyme secretion by reducing hormonal and neural stimulation of the pancreas.",
+      "To prevent metabolic alkalosis caused by gastric acid loss.",
+      "To facilitate rapid healing of gastric ulcers."
+    ],
+    "correct": 1,
+    "rational": "Keeping the client NPO and decompressing the stomach reduces gastric and duodenal stimuli, decreasing pancreatic enzyme secretion and resting the inflamed organ."
+  },
+  {
+    "id": 133,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A client with a severe traumatic brain injury has an intracranial pressure (ICP) of 24 mmHg and a Mean Arterial Pressure (MAP) of 85 mmHg. Calculate the Cerebral Perfusion Pressure (CPP) and determine its clinical significance.",
+    "options": [
+      "CPP is 61 mmHg; this is within the normal optimal range.",
+      "CPP is 109 mmHg; this indicates cerebral hyperemia.",
+      "CPP is 61 mmHg; this is below the recommended minimum threshold of 60-70 mmHg, risking ischemia.",
+      "CPP is 35 mmHg; this indicates immediate brain death."
+    ],
+    "correct": 2,
+    "rational": "CPP = MAP - ICP (85 - 24 = 61 mmHg). While 61 mmHg is barely at the lower limit (60-70 mmHg), continuous monitoring is required as values below 60 mmHg compromise cerebral perfusion."
+  },
+  {
+    "id": 134,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A client with chronic kidney disease has a serum potassium level of 6.5 mEq/L with ECG changes. The physician orders Regular Insulin 10 units with 50 mL of Dextrose 50% IV push. What is the purpose of adding Dextrose?",
+    "options": [
+      "To prevent severe hypoglycemia resulting from the insulin administration.",
+      "To enhance renal excretion of potassium ions.",
+      "To provide immediate cardiac membrane stabilization.",
+      "To increase serum sodium concentration."
+    ],
+    "correct": 0,
+    "rational": "Insulin drives potassium into cells but also lowers blood glucose; co-administering 50% Dextrose prevents dangerous iatrogenic hypoglycemia."
+  },
+  {
+    "id": 135,
+    "domain": "Respiratory Nursing",
+    "question": "A client on mechanical ventilation has a high-pressure alarm sounding continuously. Which assessment finding should the nurse investigate first?",
+    "options": [
+      "Disconnected ventilator tubing or loose circuit connections.",
+      "Accumulated endotracheal secretions or client biting the endotracheal tube.",
+      "Cuff leak in the endotracheal tube.",
+      "Extubation of the endotracheal tube into the pharynx."
+    ],
+    "correct": 1,
+    "rational": "High-pressure ventilator alarms indicate increased resistance or decreased compliance, commonly caused by secretions, coughing, bronchospasm, or tube biting. Low-pressure alarms indicate leaks or disconnection."
+  },
+  {
+    "id": 136,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A client returns to the nursing unit following a total knee arthroplasty. A continuous passive motion (CPM) machine is prescribed. What is the primary nursing responsibility regarding the CPM machine?",
+    "options": [
+      "Ensure the machine joint aligns with the client's knee joint and set the prescribed flexion/extension limits.",
+      "Remove the CPM machine during all nursing care and mealtimes.",
+      "Adjust the machine speed to maximum flexion within the first two hours.",
+      "Apply elastic bandages tightly over the machine settings."
+    ],
+    "correct": 0,
+    "rational": "Proper alignment of the CPM machine with the anatomical knee joint prevents shearing stress and ensures safe joint mobilization post-surgery."
+  },
+  {
+    "id": 137,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client receiving chemotherapy has an absolute neutrophil count (ANC) of 450 cells/mm³. Which precaution must the nurse implement immediately?",
+    "options": [
+      "Place the client in strict airborne isolation with a negative pressure room.",
+      "Implement neutropenic precautions (protective isolation), restrict fresh flowers/plants, and prohibit raw fruits/vegetables.",
+      "Administer intramuscular iron injections daily.",
+      "Encourage the client to consume unpasteurized dairy products."
+    ],
+    "correct": 1,
+    "rational": "An ANC < 500 cells/mm³ defines severe neutropenia, requiring protective isolation, strict hand hygiene, and removal of infection sources like fresh flowers and raw foods."
+  },
+  {
+    "id": 138,
+    "domain": "Perioperative Nursing",
+    "question": "A client in the PACU exhibits sudden tachypnea, tachycardia, muscle rigidity, and a rapidly rising temperature up to 40.5°C shortly after receiving succinylcholine and general anesthesia. Which drug should the nurse prepare to administer?",
+    "options": [
+      "Naloxone Hydrochloride",
+      "Dantrolene Sodium",
+      "Flumazenil",
+      "Protamine Sulfate"
+    ],
+    "correct": 1,
+    "rational": "These symptoms are classic for malignant hyperthermia triggered by volatile anesthetics or succinylcholine; Dantrolene Sodium is the specific skeletal muscle relaxant antidote."
+  },
+  {
+    "id": 139,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "A nurse is preparing to administer a cleansing enema to an adult client. How high above the anal rectum should the nurse hang the enema fluid container?",
+    "options": [
+      "12 inches (30 cm)",
+      "18 to 24 inches (45 to 60 cm)",
+      "6 inches (15 cm)",
+      "36 inches (90 cm)"
+    ],
+    "correct": 1,
+    "rational": "Hanging the enema bag 18 to 24 inches above the anus ensures a safe, controlled rate of fluid flow into the colon without causing rapid cramping or mucosal injury."
+  },
+  {
+    "id": 140,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who delivered 12 hours ago reports difficulty voiding. Palpation of the lower abdomen reveals a distended urinary bladder, and the uterine fundus is boggy and displaced 3 cm to the right of the midline. What is the immediate nursing intervention?",
+    "options": [
+      "Administer oral diuretic medication.",
+      "Assist the client to empty her bladder by voiding or catheterization, then reassess uterine tone.",
+      "Prepare for emergency surgical exploration for uterine rupture.",
+      "Apply an ice pack directly to the lower abdomen."
+    ],
+    "correct": 1,
+    "rational": "A distended bladder displaces the uterus and prevents normal myometrial contraction, leading to uterine atony and hemorrhage. Emptying the bladder resolves the displacement and restores tone."
+  },
+{
+    "id": 141,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 58-year-old male is admitted to the ICU with acute anterior myocardial infarction complicated by cardiogenic shock. His hemodynamic profile reveals BP 80/50 mmHg, cardiac index 1.6 L/min/m², and pulmonary artery wedge pressure (PAWP) 22 mmHg. Which medication infusion is most appropriate to initiate first?",
+    "options": [
+      "Dobutamine to enhance myocardial contractility and stroke volume.",
+      "Metoprolol to reduce heart rate and myocardial oxygen demand.",
+      "Amiodarone to suppress ventricular ectopy and prevent arrhythmias.",
+      "Nifedipine sublingually to rapidly dilate peripheral arterioles."
+    ],
+    "correct": 0,
+    "rational": "Cardiogenic shock with elevated PAWP and low cardiac index requires positive inotropic support like Dobutamine to improve cardiac output."
+  },
+  {
+    "id": 142,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A nurse manager is participating in a root cause analysis (RCA) following a medication administration error. Which approach is characteristic of an effective RCA process?",
+    "options": [
+      "Focusing exclusively on individual employee punishment and re-education.",
+      "Examining underlying systemic, environmental, and workflow vulnerabilities that permitted the error.",
+      "Dismissing the event if no patient harm occurred.",
+      "Filing the report confidentially without sharing lessons learned with other units."
+    ],
+    "correct": 1,
+    "rational": "Root cause analysis is a systems-focused methodology aimed at identifying latent process and workflow flaws rather than assigning individual blame."
+  },
+  {
+    "id": 143,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult trauma victim is evaluated in the emergency department. During the primary survey, the nurse notes tracheal deviation to the left, absent breath sounds on the right hemithorax, hyperresonance to percussion, and severe hypotension. What is the immediate priority intervention?",
+    "options": [
+      "Obtain an upright portable chest radiograph immediately.",
+      "Perform emergent needle decompression at the second intercostal space midclavicular line on the right side.",
+      "Insert a central venous catheter into the right internal jugular vein.",
+      "Administer a rapid fluid bolus of 2 Liters normal saline."
+    ],
+    "correct": 1,
+    "rational": "Tension pneumothorax causes immediate hemodynamic collapse and requires emergent needle decompression without waiting for radiological confirmation."
+  },
+  {
+    "id": 144,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "During cardiac arrest resuscitation, the cardiac monitor displays pulseless electrical activity (PEA) at a rate of 54 bpm. What is the priority nursing and resuscitation management?",
+    "options": [
+      "Perform immediate synchronized cardioversion at 150 Joules.",
+      "Deliver high-quality CPR and administer Epinephrine 1 mg IV push every 3 to 5 minutes while investigating reversible causes (H's and T's).",
+      "Administer Atropine 1 mg IV push as a continuous infusion.",
+      "Prepare for immediate transvenous pacemaker insertion."
+    ],
+    "correct": 1,
+    "rational": "PEA is a non-shockable arrest rhythm managed through uninterrupted high-quality CPR, airway management, epinephrine administration, and treating reversible H and T causes."
+  },
+  {
+    "id": 145,
+    "domain": "Pediatric Critical Care",
+    "question": "A 5-year-old child weighing 18 kg is admitted with severe dehydration secondary to acute gastroenteritis. Using the Holliday-Segar formula, calculate the correct 24-hour maintenance fluid requirement.",
+    "options": [
+      "1200 mL per day",
+      "1400 mL per day",
+      "1520 mL per day",
+      "1650 mL per day"
+    ],
+    "correct": 1,
+    "rational": "Using Holliday-Segar: 100 mL/kg for the first 10 kg (1000 mL) + 50 mL/kg for the next 8 kg (400 mL) = 1400 mL total per 24 hours."
+  },
+  {
+    "id": 146,
+    "domain": "Maternal & Women's Health",
+    "question": "A client at 34 weeks gestation is receiving Magnesium Sulfate for severe preeclampsia. Which assessment finding indicates early magnesium toxicity requiring immediate intervention?",
+    "options": [
+      "Deep tendon reflexes absent (0) and respiratory rate of 10 breaths per minute.",
+      "Blood pressure reading of 135/85 mmHg.",
+      "Urine output of 50 mL per hour over the last two hours.",
+      "Mild facial warmth and flushing reported by the client."
+    ],
+    "correct": 0,
+    "rational": "Loss of deep tendon reflexes and respiratory depression (<12 breaths/min) are hallmark signs of magnesium toxicity, requiring cessation of the infusion and administration of calcium gluconate."
+  },
+  {
+    "id": 147,
+    "domain": "Mental Health Nursing",
+    "question": "A client with schizophrenia is experiencing auditory hallucinations telling them that they are worthless and should harm themselves. How should the nurse initially approach this situation?",
+    "options": [
+      "Ask the client directly what the voices are saying and assess for active suicidal ideation.",
+      "Tell the client that the voices are not real and ignore their statements.",
+      "Agree with the client that the voices must be terrifying.",
+      "Place the client in immediate physical restraints."
+    ],
+    "correct": 0,
+    "rational": "Assessing the exact content of hallucinations and checking for command hallucinations or suicidal intent is critical for ensuring client safety."
+  },
+  {
+    "id": 148,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A patient receiving intravenous Heparin therapy has an activated partial thromboplastin time (aPTT) of 120 seconds with active gingival bleeding. What is the appropriate pharmacological reversal agent?",
+    "options": [
+      "Vitamin K1 phytomenadione",
+      "Protamine Sulfate",
+      "Flumazenil",
+      "Naloxone Hydrochloride"
+    ],
+    "correct": 1,
+    "rational": "Protamine Sulfate is the specific chemical antagonist that neutralizes heparin anticoagulant activity."
+  },
+  {
+    "id": 149,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is caring for a client with active pulmonary tuberculosis. Which combination of precautions must be implemented?",
+    "options": [
+      "Contact and droplet precautions in a private room.",
+      "Airborne precautions in a negative pressure isolation room (AIIR) using N95 respirators.",
+      "Standard precautions in a multi-bed ward.",
+      "Protective reverse isolation with positive pressure ventilation."
+    ],
+    "correct": 1,
+    "rational": "Tuberculosis is transmitted via airborne droplet nuclei, requiring negative pressure isolation rooms and fit-tested N95 respirators for healthcare workers."
+  },
+  {
+    "id": 150,
+    "domain": "Community & Public Health",
+    "question": "A public health nurse conducts blood pressure screening camps in local community centers to identify individuals with undiagnosed hypertension. Which level of prevention is demonstrated?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Primordial Prevention"
+    ],
+    "correct": 1,
+    "rational": "Screening for early detection and prompt treatment of asymptomatic disease represents secondary prevention."
+  },
+  {
+    "id": 151,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client undergoes a subtotal thyroidectomy. Eighteen hours post-op, the client complains of numbness and tingling around the lips and fingertips. The nurse taps the facial nerve and observes twitching of the facial muscles (positive Chvostek sign). What imbalance is suspected?",
+    "options": [
+      "Hypocalcemia resulting from inadvertent parathyroid gland injury.",
+      "Hyperkalemia secondary to tissue trauma.",
+      "Hyponatremia caused by water intoxication.",
+      "Hypomagnesemia from excessive IV fluid administration."
+    ],
+    "correct": 0,
+    "rational": "Inadvertent damage or removal of the parathyroid glands during thyroid surgery causes hypocalcemia, leading to neuromuscular irritability (Chvostek and Trousseau signs)."
+  },
+  {
+    "id": 152,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A client with advanced liver cirrhosis and esophageal varices is admitted with hematemesis. A Sengstaken-Blakemore tube is inserted. Which bedside safety item is mandatory to keep immediately accessible?",
+    "options": [
+      "A pair of sharp medical scissors to quickly cut and deflate the balloons if airway obstruction occurs.",
+      "A 50 mL syringe filled with sterile water for continuous balloon inflation.",
+      "A mechanical suction regulator set to continuous high suction.",
+      "An endotracheal intubation tray with a laryngoscope."
+    ],
+    "correct": 0,
+    "rational": "Scissors must be kept at the bedside of any patient with a Sengstaken-Blakemore tube so the lumens can be instantly cut to deflate balloons if respiratory distress or airway occlusion occurs."
+  },
+  {
+    "id": 153,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A client is admitted following a severe closed head injury. The nurse monitors intracranial pressure (ICP). Which factor is known to significantly increase intracranial pressure?",
+    "options": [
+      "Maintaining the head of the bed elevated at 30 degrees.",
+      "Keeping the head and neck in neutral alignment without twisting.",
+      "Endotracheal suctioning without prior hyperoxygenation or clustering nursing care.",
+      "Maintaining arterial blood pressure within normal baseline ranges."
+    ],
+    "correct": 2,
+    "rational": "Endotracheal suctioning, coughing, pain, and neck flexion/extension provoke transient spikes in intracranial pressure."
+  },
+  {
+    "id": 154,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A client with acute kidney injury is prescribed a low-potassium diet. Which food selection should the nurse instruct the client to avoid?",
+    "options": [
+      "Apples and white bread",
+      "Bananas, oranges, and potatoes",
+      "Rice and refined pasta",
+      "Cabbage and cucumber"
+    ],
+    "correct": 1,
+    "rational": "Bananas, oranges, cantaloupes, and potatoes are rich sources of dietary potassium and must be restricted in hyperkalemic renal failure."
+  },
+  {
+    "id": 155,
+    "domain": "Respiratory Nursing",
+    "question": "A client with COPD is receiving oxygen via nasal cannula at 2 L/min. Arterial blood gas results show pH 7.35, PaCO2 58 mmHg, PaO2 65 mmHg, and HCO3 31 mEq/L. How should the nurse interpret these findings?",
+    "options": [
+      "Compensated respiratory acidosis.",
+      "Acute uncompensated metabolic alkalosis.",
+      "Normal acid-base balance with hyperventilation.",
+      "Respiratory alkalosis with hypoxemia."
+    ],
+    "correct": 0,
+    "rational": "A low-normal pH with elevated PaCO2 and elevated bicarbonate indicates fully compensated respiratory acidosis, common in chronic COPD."
+  },
+  {
+    "id": 156,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A client who sustained a femur fracture three days ago develops acute shortness of breath, tachycardia, petechiae over the anterior chest wall, and confusion. What complication is most likely?",
+    "options": [
+      "Fat embolism syndrome",
+      "Pulmonary tuberculosis infection",
+      "Acute myocardial infarction",
+      "Bacterial pneumonia"
+    ],
+    "correct": 0,
+    "rational": "The classic triad of fat embolism syndrome includes respiratory distress, neurological changes (confusion), and petechial rash occurring 24–72 hours after long bone fractures."
+  },
+  {
+    "id": 157,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client undergoing chemotherapy develops severe thrombocytopenia (platelet count 15,000 /mm³). Which nursing intervention should be included in the care plan?",
+    "options": [
+      "Encourage flossing daily with a firm toothbrush.",
+      "Provide an electric shaver for shaving and avoid intramuscular injections.",
+      "Administer aspirin for mild temperature elevations.",
+      "Encourage contact sports to maintain physical fitness."
+    ],
+    "correct": 1,
+    "rational": "Severe thrombocytopenia requires bleeding precautions, including electric razors, soft toothbrushes, avoiding IM injections, and minimizing trauma."
+  },
+  {
+    "id": 158,
+    "domain": "Perioperative Nursing",
+    "question": "A client in the PACU exhibits signs of airway obstruction due to the tongue falling backward against the posterior pharynx. What is the initial nursing action?",
+    "options": [
+      "Administer intravenous muscle relaxants.",
+      "Perform a chin-lift or jaw-thrust maneuver to open the airway.",
+      "Prepare for immediate surgical tracheostomy.",
+      "Insert a nasogastric tube immediately."
+    ],
+    "correct": 1,
+    "rational": "A chin-lift or jaw-thrust maneuver lifts the tongue away from the posterior pharyngeal wall, immediately relieving upper airway obstruction."
+  },
+  {
+    "id": 159,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "What is the correct post-procedure positioning for a client following a liver biopsy to minimize hemorrhage risk?",
+    "options": [
+      "Supine position with the head of the bed flat.",
+      "Right lateral decubitus position[cite: 3, 4].",
+      "High Fowler's position at 90 degrees.",
+      "Trendelenburg position."
+    ],
+    "correct": 1,
+    "rational": "Positioning the client on their right side applies mechanical pressure on the liver capsule against the abdominal wall, tamponading the puncture site[cite: 3, 4]."
+  },
+  {
+    "id": 160,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who delivered vaginally 4 hours ago is assessed by the nurse. The uterus is boggy, soft, and displaced to the right. The client reports not voiding since delivery. What is the priority nursing action?",
+    "options": [
+      "Administer methylergonovine intramuscularly immediately.",
+      "Assist the client to empty her bladder, then reassess uterine tone.",
+      "Prepare the client for emergency surgical curettage.",
+      "Apply warm compresses to the perineum."
+    ],
+    "correct": 1,
+    "rational": "A full bladder displaces the uterus and prevents normal contraction, causing uterine atony and bleeding; assisting the client to void resolves the displacement and restores tone."
+  },
+{
+    "id": 161,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 54-year-old male is admitted to the ICU with acute respiratory distress syndrome (ARDS) secondary to severe sepsis. His ABG reveals pH 7.31, PaO2 58 mmHg, PaCO2 48 mmHg, and HCO3 24 mEq/L on FiO2 0.80. The ventilator is set to low tidal volume ventilation (6 mL/kg predicted body weight). What is the primary physiological rationale for this ventilator setting?",
+    "options": [
+      "To prevent volutrauma and barotrauma by limiting end-inspiratory alveolar stretch and rupture.",
+      "To maximize rapid elimination of carbon dioxide and normalize systemic blood pH.",
+      "To eliminate the need for positive end-expiratory pressure (PEEP) titration.",
+      "To shorten inspiratory time and increase cardiac preload."
+    ],
+    "correct": 0,
+    "rational": "Low tidal volume ventilation (6 mL/kg) is lung-protective ventilation designed to prevent volutrauma, barotrauma, and biotrauma in stiff ARDS lungs."
+  },
+  {
+    "id": 162,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A nurse manager is implementing the World Health Organization (WHO) Surgical Safety Checklist on the perioperative unit. Which phase of the checklist involves verifying patient identity, procedure, and consent immediately before skin incision?",
+    "options": [
+      "Sign In (prior to anesthesia induction)",
+      "Time Out (prior to skin incision)",
+      "Sign Out (prior to patient leaving the operating room)",
+      "Debriefing session in the PACU"
+    ],
+    "correct": 1,
+    "rational": "The 'Time Out' is the final verification pause immediately prior to surgical incision where the entire team confirms patient identity, site, and procedure."
+  },
+  {
+    "id": 163,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult trauma client is admitted following a motor vehicle collision. During the secondary survey, the nurse notes severe pain, swelling, and crepitus over the lower extremities. Which diagnostic tool or assessment is vital to rule out acute compartment syndrome?",
+    "options": [
+      "Serial neurovascular assessments including pain on passive stretch, pulses, pallor, paresthesia, and paralysis.",
+      "Routine upright chest radiography.",
+      "Electrocardiogram monitoring for ST-segment elevation.",
+      "Measurement of abdominal girth every two hours."
+    ],
+    "correct": 0,
+    "rational": "Acute compartment syndrome is diagnosed clinically through serial neurovascular checks, focusing on pain out of proportion and pain on passive muscle stretch."
+  },
+  {
+    "id": 164,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "During cardiac arrest resuscitation, a client is in ventricular fibrillation. After two shocks and epinephrine administration, the team prepares an antiarrhythmic drug. Which intravenous medication is recommended first for refractory VF/pulseless VT?",
+    "options": [
+      "Amiodarone 300 mg rapid IV push",
+      "Atropine 1 mg IV push",
+      "Adenosine 12 mg rapid IV push",
+      "Diltiazem 20 mg IV bolus"
+    ],
+    "correct": 0,
+    "rational": "Amiodarone 300 mg IV/IO push is the primary antiarrhythmic medication indicated for shock-refractory ventricular fibrillation or pulseless ventricular tachycardia under ACLS guidelines."
+  },
+  {
+    "id": 165,
+    "domain": "Pediatric Critical Care",
+    "question": "A 2-year-old child weighing 12 kg is admitted with acute dehydration from gastroenteritis. Calculate the 24-hour maintenance fluid rate using the Holliday-Segar method.",
+    "options": [
+      "900 mL per day",
+      "1100 mL per day",
+      "1350 mL per day",
+      "1500 mL per day"
+    ],
+    "correct": 1,
+    "rational": "Using Holliday-Segar: 100 mL/kg for the first 10 kg (1000 mL) + 50 mL/kg for the next 2 kg (100 mL) = 1100 mL total per 24 hours."
+  },
+  {
+    "id": 166,
+    "domain": "Maternal & Women's Health",
+    "question": "A 36-week pregnant client with severe preeclampsia is receiving Magnesium Sulfate IV. The nurse notes the client is lethargic, respirations are 10 breaths per minute, and deep tendon reflexes are absent. What is the immediate nursing action?",
+    "options": [
+      "Stop the magnesium sulfate infusion immediately and prepare Calcium Gluconate IV.",
+      "Increase the infusion rate to therapeutic levels.",
+      "Administer oral hydralazine tablets.",
+      "Encourage the client to ambulate in the hallway."
+    ],
+    "correct": 0,
+    "rational": "Respiratory depression (<12 bpm) and absent reflexes indicate magnesium toxicity; the infusion must be stopped and calcium gluconate prepared as the antidote."
+  },
+  {
+    "id": 167,
+    "domain": "Mental Health Nursing",
+    "question": "A client diagnosed with major depressive disorder states, 'Life is meaningless and I want to end it all tonight.' Which initial response by the nurse is most appropriate?",
+    "options": [
+      "Ask directly, 'Are you thinking about suicide or killing yourself tonight?'",
+      "Change the subject to discuss family members and pleasant hobbies.",
+      "Assure the client that everyone feels sad sometimes and tomorrow will be better.",
+      "Leave the client alone in the room to rest quietly."
+    ],
+    "correct": 0,
+    "rational": "Directly asking about suicidal intent is essential when a client expresses suicidal ideation, ensuring safety assessment without increasing risk."
+  },
+  {
+    "id": 168,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A client on long-term Warfarin therapy has an International Normalized Ratio (INR) of 5.8 with mild ecchymosis on the arms. Which medication should the nurse anticipate the physician ordering?",
+    "options": [
+      "Vitamin K (Phytomenadione)",
+      "Protamine Sulfate",
+      "Desmopressin acetate",
+      "Iron Dextran"
+    ],
+    "correct": 0,
+    "rational": "Vitamin K is the specific reversal agent for warfarin toxicity when INR is supratherapeutic and minor bleeding occurs."
+  },
+  {
+    "id": 169,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is caring for a client with active pulmonary tuberculosis. Which combination of isolation precautions must be enforced?",
+    "options": [
+      "Airborne precautions in a negative-pressure isolation room using an N95 respirator.",
+      "Droplet precautions in a private room using a surgical mask.",
+      "Contact precautions in a private room using sterile gowns and gloves.",
+      "Standard precautions in a shared multi-bed ward."
+    ],
+    "correct": 0,
+    "rational": "Pulmonary tuberculosis requires airborne infection isolation room (AIIR) housing with negative air pressure and N95 respiratory protection."
+  },
+  {
+    "id": 170,
+    "domain": "Community & Public Health",
+    "question": "A community health nurse coordinates a cholesterol and blood pressure screening program at a senior citizen center. Which level of prevention is demonstrated?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Primordial Prevention"
+    ],
+    "correct": 1,
+    "rational": "Screening tests detect asymptomatic disease early to allow prompt treatment, representing secondary prevention."
+  },
+  {
+    "id": 171,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client with type 1 diabetes mellitus is admitted with diabetic ketoacidosis (DKA). Blood glucose is 480 mg/dL, arterial pH is 7.12, and serum potassium is 3.1 mEq/L. What is the priority nursing action before starting the insulin infusion?",
+    "options": [
+      "Administer IV potassium replacement until serum potassium is greater than 3.3 mEq/L.",
+      "Administer a sodium bicarbonate IV bolus immediately regardless of blood gas values.",
+      "Discontinue all intravenous fluid hydration.",
+      "Administer oral glucose tablets to raise blood sugar."
+    ],
+    "correct": 0,
+    "rational": "Insulin shifts potassium into cells, which would worsen hypokalemia; potassium must be corrected above 3.3 mEq/L before starting insulin."
+  },
+  {
+    "id": 172,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A client with acute pancreatitis is placed on strict NPO status and nasogastric tube suction. What is the primary clinical objective of this intervention?",
+    "options": [
+      "To reduce pancreatic stimulation and enzyme secretion by resting the gastrointestinal tract.",
+      "To prevent esophageal variceal hemorrhage.",
+      "To correct metabolic alkalosis caused by vomiting.",
+      "To enhance absorption of fat-soluble vitamins."
+    ],
+    "correct": 0,
+    "rational": "NPO status and gastric decompression minimize pancreatic exocrine secretion by eliminating food-induced hormonal and neural pancreatic stimulation."
+  },
+  {
+    "id": 173,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A client with a severe head injury has an intracranial pressure (ICP) of 26 mmHg and a Mean Arterial Pressure (MAP) of 80 mmHg. Calculate the Cerebral Perfusion Pressure (CPP).",
+    "options": [
+      "CPP is 54 mmHg; this is below the recommended threshold, risking cerebral ischemia.",
+      "CPP is 106 mmHg; this indicates normal cerebral perfusion.",
+      "CPP is 30 mmHg; this indicates brain death.",
+      "CPP is 80 mmHg; ICP does not affect cerebral perfusion."
+    ],
+    "correct": 0,
+    "rational": "CPP = MAP - ICP (80 - 26 = 54 mmHg). A CPP below 60–70 mmHg indicates inadequate cerebral perfusion and risk of ischemia."
+  },
+  {
+    "id": 174,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A client undergoing hemodialysis via an AV fistula in the left arm reports dizziness and develops hypotension (BP 80/50 mmHg). What is the immediate nursing intervention?",
+    "options": [
+      "Stop or slow down the blood pump, lower the head of the bed, and infuse a normal saline bolus.",
+      "Increase the ultrafiltration rate to extract excess fluid quickly.",
+      "Administer sublingual nitroglycerin.",
+      "Apply a blood pressure cuff on the left arm and pump to 200 mmHg."
+    ],
+    "correct": 0,
+    "rational": "Dialysis hypotension requires reducing or stopping fluid removal, placing the client in Trendelenburg position, and administering isotonic saline boluses."
+  },
+  {
+    "id": 175,
+    "domain": "Respiratory Nursing",
+    "question": "A client on mechanical ventilation has continuous bubbling in the water-seal chamber of a chest drainage system. How should the nurse interpret this finding?",
+    "options": [
+      "An air leak exists somewhere in the drainage system or pleural space.",
+      "The client's lungs have fully re-expanded.",
+      "Normal expected suction control operation.",
+      "The chest tube lumen is completely occluded by blood clots."
+    ],
+    "correct": 0,
+    "rational": "Continuous bubbling in the water-seal chamber indicates an air leak, whereas intermittent bubbling during exhalation or coughing is expected with a pneumothorax."
+  },
+  {
+    "id": 176,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A client post-total hip replacement via posterior approach is being positioned in bed. Which precaution must the nurse maintain to prevent joint dislocation?",
+    "options": [
+      "Keep the operative leg abducted using a wedge pillow and prevent adduction or internal rotation.",
+      "Allow the client to cross their legs freely at the ankles.",
+      "Flex the hip beyond 90 degrees during morning hygiene care.",
+      "Position the client in high Fowler's position with legs internally rotated."
+    ],
+    "correct": 0,
+    "rational": "An abduction pillow maintains neutral alignment and prevents adduction and internal rotation, which can dislocate a posterior hip prosthesis."
+  },
+  {
+    "id": 177,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client receiving chemotherapy develops febrile neutropenia with an absolute neutrophil count (ANC) of 300 cells/mm³ and temperature of 38.8°C. What is the priority nursing action?",
+    "options": [
+      "Obtain blood cultures and initiate empirical broad-spectrum IV antibiotics within 1 hour.",
+      "Administer oral antipyretics and recheck temperature in 4 hours.",
+      "Discharge the client with instructions to drink warm fluids.",
+      "Apply cold ice packs to reduce body temperature rapidly."
+    ],
+    "correct": 0,
+    "rational": "Febrile neutropenia is a medical emergency requiring prompt blood cultures and immediate administration of broad-spectrum IV antibiotics within 60 minutes."
+  },
+  {
+    "id": 178,
+    "domain": "Perioperative Nursing",
+    "question": "A client in the PACU exhibits stridor and crowing respirations following thyroidectomy. What is the immediate priority nursing action?",
+    "options": [
+      "Prepare for emergency airway re-intubation or tracheostomy due to acute laryngeal edema.",
+      "Administer oral cough suppressants.",
+      "Elevate the feet in Trendelenburg position.",
+      "Apply warm moist towels to the chest."
+    ],
+    "correct": 0,
+    "rational": "Stridor indicates acute upper airway obstruction caused by laryngeal edema or nerve injury after thyroid surgery, requiring emergency airway readiness."
+  },
+  {
+    "id": 179,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "What is the recommended client position immediately following a liver biopsy to minimize post-procedure hemorrhage risk?",
+    "options": [
+      "Right lateral decubitus position with a small pillow under the puncture site[cite: 3, 4]",
+      "High Fowler's position at 90 degrees upright",
+      "Prone position flat on the abdomen",
+      "Trendelenburg position with head tilted down"
+    ],
+    "correct": 0,
+    "rational": "Lying on the right side applies mechanical pressure against the liver capsule, tamponading the biopsy needle site[cite: 3, 4]."
+  },
+  {
+    "id": 180,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who delivered vaginally 6 hours ago has a boggy uterus and heavy vaginal bleeding. What is the immediate priority nursing action?",
+    "options": [
+      "Massage the uterine fundus firmly until it contracts[cite: 3, 4].",
+      "Prepare the client for emergency blood transfusion[cite: 3, 4].",
+      "Insert an indwelling Foley catheter immediately[cite: 3, 4].",
+      "Administer oral iron supplements[cite: 3, 4]."
+    ],
+    "correct": 0,
+    "rational": "A boggy uterus indicates postpartum uterine atony; vigorous fundal massage stimulates myometrial contractions to control bleeding[cite: 3, 4]."
+  },
+{
+    "id": 181,
+    "domain": "Adult & Critical Care Nursing",
+    "question": "A 56-year-old male in the ICU following a coronary artery bypass graft develops sudden tachycardia, hypotension (BP 75/40 mmHg), elevated central venous pressure (CVP 18 mmHg), muffled heart sounds, and a sudden cessation of chest tube drainage. Which complication is most likely?",
+    "options": [
+      "Cardiac Tamponade",
+      "Acute Hypovolemic Shock",
+      "Bilateral Tension Pneumothorax",
+      "Pulmonary Embolism"
+    ],
+    "correct": 0,
+    "rational": "Beck's triad (hypotension, elevated JVD/CVP, muffled heart sounds) coupled with sudden cessation of chest tube drainage indicates blood accumulation in the pericardial sac, causing cardiac tamponade."
+  },
+  {
+    "id": 182,
+    "domain": "Nursing Leadership & Patient Safety",
+    "question": "A charge nurse is conducting an orientation session on National Patient Safety Goals (NPSG). Which practice is essential for preventing wrong-site, wrong-procedure, and wrong-person surgery?",
+    "options": [
+      "Performing a mandatory pre-procedure verification, active site marking, and a pre-incision 'Time-Out'.",
+      "Allowing the circulating nurse to verify the surgical site independently without patient participation.",
+      "Conducting the surgical time-out in the post-anesthesia care unit.",
+      "Verifying patient identity only after general anesthesia has been induced."
+    ],
+    "correct": 0,
+    "rational": "The NPSG Universal Protocol requires pre-procedure verification, active surgical site marking while the patient is awake, and an immediate pre-incision time-out."
+  },
+  {
+    "id": 183,
+    "domain": "Emergency & Trauma Nursing",
+    "question": "An adult trauma patient is brought to the emergency department after falling from a roof. The client exhibits absent breath sounds over the left hemithorax, dullness to percussion, tracheal deviation to the right, and severe hypotension. What condition is suspected?",
+    "options": [
+      "Massive Hemothorax",
+      "Tension Pneumothorax",
+      "Simple Pneumothorax",
+      "Cardiac Contusion"
+    ],
+    "correct": 0,
+    "rational": "Dullness to percussion distinguishes massive hemothorax from tension pneumothorax (which presents with hyperresonance), along with shock and absent breath sounds on the affected side."
+  },
+  {
+    "id": 184,
+    "domain": "Cardiovascular & Resuscitation",
+    "question": "During cardiac arrest resuscitation, the cardiac monitor displays Pulseless Electrical Activity (PEA). What are the priority interventions in managing PEA?",
+    "options": [
+      "Unsynchronized defibrillation shock at 200 Joules followed by amiodarone.",
+      "Uninterrupted high-quality CPR, airway management, epinephrine administration every 3-5 minutes, and identifying reversible H's and T's.",
+      "Immediate transcutaneous pacing at 80 mA.",
+      "Administration of calcium channel blockers to slow myocardial conduction."
+    ],
+    "correct": 1,
+    "rational": "PEA is non-shockable; management centers on high-quality CPR, airway support, epinephrine every 3-5 minutes, and aggressively treating reversible causes (H's and T's)."
+  },
+  {
+    "id": 185,
+    "domain": "Pediatric Critical Care",
+    "question": "A 10-month-old infant is admitted with severe dehydration. The infant weighs 10 kg. Using the Holliday-Segar method, calculate the exact 24-hour maintenance fluid requirement.",
+    "options": [
+      "800 mL per day",
+      "1000 mL per day",
+      "1200 mL per day",
+      "1500 mL per day"
+    ],
+    "correct": 1,
+    "rational": "Using Holliday-Segar for infants up to 10 kg: 100 mL/kg for the first 10 kg = 1000 mL total per 24 hours."
+  },
+  {
+    "id": 186,
+    "domain": "Maternal & Women's Health",
+    "question": "A client at 38 weeks gestation is receiving oxytocin induction. The fetal heart rate tracing shows repetitive late decelerations. What is the immediate priority nursing action?",
+    "options": [
+      "Increase the oxytocin infusion rate to expedite vaginal delivery.",
+      "Stop the oxytocin infusion immediately, turn the client to the left lateral position, and administer oxygen.",
+      "Prepare for immediate discharge home.",
+      "Encourage the client to push vigorously."
+    ],
+    "correct": 1,
+    "rational": "Late decelerations indicate uteroplacental insufficiency. Stopping oxytocin, positioning the client laterally, administering O2, and infusing IV fluids optimize uteroplacental perfusion."
+  },
+  {
+    "id": 187,
+    "domain": "Mental Health Nursing",
+    "question": "A psychiatric nurse is caring for a client with major depressive disorder who states, 'I just want to end it all.' Which initial response by the nurse demonstrates effective therapeutic communication?",
+    "options": [
+      "Are you having thoughts of suicide or wanting to kill yourself right now?",
+      "Why would you say something so distressing to your family?",
+      "Do not worry about that; tomorrow is a brand new day.",
+      "Let us walk down the hallway and play board games."
+    ],
+    "correct": 0,
+    "rational": "Asking directly and clearly about suicidal ideation is essential when a client expresses explicit intent to self-harm, ensuring proper safety evaluation."
+  },
+  {
+    "id": 188,
+    "domain": "Pharmacology & Medication Safety",
+    "question": "A client is prescribed Warfarin for deep vein thrombosis prophylaxis. Which laboratory parameter is monitored to evaluate the therapeutic effectiveness of Warfarin?",
+    "options": [
+      "Activated Partial Thromboplastin Time (aPTT)",
+      "International Normalized Ratio (INR)",
+      "Bleeding Time",
+      "Platelet Count"
+    ],
+    "correct": 1,
+    "rational": "Warfarin anticoagulant therapy is monitored and adjusted based on the International Normalized Ratio (INR)."
+  },
+  {
+    "id": 189,
+    "domain": "Infectious Diseases & Infection Control",
+    "question": "A nurse is preparing to care for a client with active pulmonary tuberculosis. Which protective mask must the nurse wear upon entering the room?",
+    "options": [
+      "Standard paper surgical mask",
+      "Fit-tested N95 or higher particulate respirator mask",
+      "Cloth face covering with dual filters",
+      "Clear plastic face shield without a mask"
+    ],
+    "correct": 1,
+    "rational": "Airborne isolation precautions for tuberculosis require healthcare workers to wear a fit-tested N95 or higher particulate respirator."
+  },
+  {
+    "id": 190,
+    "domain": "Community & Public Health",
+    "question": "A public health department organizes a community vaccination clinic for seasonal influenza. Which level of prevention is represented?",
+    "options": [
+      "Primary Prevention",
+      "Secondary Prevention",
+      "Tertiary Prevention",
+      "Primordial Prevention"
+    ],
+    "correct": 0,
+    "rational": "Immunizations protect healthy populations from contracting infectious illnesses, representing primary disease prevention."
+  },
+  {
+    "id": 191,
+    "domain": "Endocrine & Metabolic Nursing",
+    "question": "A client with type 1 diabetes mellitus is admitted in diabetic ketoacidosis (DKA) with blood glucose of 520 mg/dL, arterial pH 7.10, and serum potassium 3.0 mEq/L. What is the priority nursing action before initiating insulin infusion?",
+    "options": [
+      "Administer IV potassium replacement until potassium is greater than 3.3 mEq/L.",
+      "Administer a sodium bicarbonate bolus immediately regardless of blood gas values.",
+      "Discontinue all intravenous fluids.",
+      "Administer oral glucose tablets."
+    ],
+    "correct": 0,
+    "rational": "Insulin administration drives potassium into cells, which would worsen hypokalemia; serum potassium must be corrected above 3.3 mEq/L before starting insulin."
+  },
+  {
+    "id": 192,
+    "domain": "Gastrointestinal & Critical Care",
+    "question": "A client with acute pancreatitis is admitted. Which laboratory enzyme test is more specific and remains elevated longer than serum amylase during pancreatic injury?",
+    "options": [
+      "Serum Lipase",
+      "Serum Alkaline Phosphatase",
+      "Serum Alanine Aminotransferase (ALT)",
+      "Serum Creatinine Kinase"
+    ],
+    "correct": 0,
+    "rational": "Serum lipase is a more sensitive and specific marker for acute pancreatitis than serum amylase."
+  },
+  {
+    "id": 193,
+    "domain": "Neurological & Neurosurgical Nursing",
+    "question": "A client is admitted with an acute ischemic stroke. Non-contrast head CT is negative for hemorrhage, and the client presents within the 3-hour therapeutic window. What is the priority treatment?",
+    "options": [
+      "Administer IV recombinant tissue plasminogen activator (rt-PA).",
+      "Administer high-dose oral aspirin and clopidogrel.",
+      "Perform emergent carotid endarterectomy.",
+      "Administer IV mannitol 20% rapidly."
+    ],
+    "correct": 0,
+    "rational": "Intravenous recombinant tissue plasminogen activator (rt-PA) administered within the therapeutic window is the standard treatment for acute ischemic stroke without hemorrhage."
+  },
+  {
+    "id": 194,
+    "domain": "Renal & Genitourinary Nursing",
+    "question": "A client with chronic kidney disease is prescribed Epoetin alfa. What is the therapeutic goal of this medication?",
+    "options": [
+      "To stimulate bone marrow erythropoiesis and correct renal failure-induced anemia.",
+      "To decrease serum potassium levels via gastrointestinal exchange.",
+      "To lower systemic arterial blood pressure.",
+      "To bind dietary phosphorus in the gastrointestinal tract."
+    ],
+    "correct": 0,
+    "rational": "Epoetin alfa replaces deficient endogenous erythropoietin produced by failing kidneys, stimulating red blood cell production in bone marrow."
+  },
+  {
+    "id": 195,
+    "domain": "Respiratory Nursing",
+    "question": "A client on mechanical ventilation has a low-pressure ventilator alarm sounding continuously. Which assessment finding should the nurse investigate first?",
+    "options": [
+      "Disconnected ventilator tubing or loose circuit connections.",
+      "Excessive endotracheal secretions causing airway resistance.",
+      "Client biting the endotracheal tube.",
+      "Bronchospasm requiring aerosolized bronchodilators."
+    ],
+    "correct": 0,
+    "rational": "Low-pressure ventilator alarms indicate a loss of circuit integrity, such as disconnected tubing, extubation, or circuit leaks."
+  },
+  {
+    "id": 196,
+    "domain": "Musculoskeletal & Orthopedic Nursing",
+    "question": "A client who sustained a femur fracture 48 hours ago develops acute confusion, tachypnea, tachycardia, and petechiae over the chest wall. What condition is most likely?",
+    "options": [
+      "Fat Embolism Syndrome",
+      "Deep Vein Thrombosis",
+      "Bacterial Pneumonia",
+      "Septic Shock"
+    ],
+    "correct": 0,
+    "rational": "Fat embolism syndrome presents within 24-72 hours post-long bone fracture with the classic triad: respiratory distress, neurological changes (confusion), and petechial rash."
+  },
+  {
+    "id": 197,
+    "domain": "Oncology & Hematology Nursing",
+    "question": "A client receiving chemotherapy develops neutropenia with an absolute neutrophil count (ANC) of 400 cells/mm³. Which precaution must be implemented?",
+    "options": [
+      "Strict neutropenic precautions (protective isolation), avoiding fresh plants/flowers and raw foods.",
+      "Airborne isolation in a negative pressure room.",
+      "Contact isolation with sterile gowns and gloves for all visitors.",
+      "Standard precautions without any environmental modifications."
+    ],
+    "correct": 0,
+    "rational": "Severe neutropenia (ANC < 500) requires protective isolation precautions to shield the immunocompromised client from environmental pathogens."
+  },
+  {
+    "id": 198,
+    "domain": "Perioperative Nursing",
+    "question": "A client in the PACU exhibits sudden muscle rigidity, hypercapnia, tachycardia, and a rapidly rising body temperature following general anesthesia with succinylcholine. What is the specific antidote?",
+    "options": [
+      "Dantrolene Sodium IV",
+      "Naloxone Hydrochloride",
+      "Flumazenil",
+      "Protamine Sulfate"
+    ],
+    "correct": 0,
+    "rational": "Malignant hyperthermia is treated with Dantrolene Sodium, which relaxes skeletal muscle and blocks calcium release."
+  },
+  {
+    "id": 199,
+    "domain": "Positioning & Nursing Procedures",
+    "question": "What is the recommended client position immediately following a liver biopsy procedure?",
+    "options": [
+      "Right lateral decubitus position with a small pillow under the puncture site[cite: 3, 4]",
+      "High Fowler's position upright",
+      "Trendelenburg position with head down",
+      "Prone position flat on abdomen"
+    ],
+    "correct": 0,
+    "rational": "Lying on the right side applies direct mechanical pressure against the liver capsule, helping to tamponade the biopsy site and prevent hemorrhage[cite: 3, 4]."
+  },
+  {
+    "id": 200,
+    "domain": "Maternal & Women's Health",
+    "question": "A postpartum client who delivered vaginally 4 hours ago is assessed by the nurse. The uterus is boggy, soft, and displaced to the right, and the client reports not voiding since delivery. What is the immediate priority nursing action?",
+    "options": [
+      "Assist the client to empty her bladder, then reassess uterine tone.",
+      "Administer oral diuretic medication.",
+      "Prepare for emergency surgical curettage.",
+      "Apply ice packs to the lower abdomen."
+    ],
+    "correct": 0,
+    "rational": "A full bladder displaces the uterus and prevents normal contraction, causing postpartum uterine atony. Assisting the client to empty her bladder resolves displacement and restores uterine tone."
+ }
+        ];
+
+        let activeItems = [];
+        let currentIndex = 0;
+        let userAnswers = {};
+        let flaggedQuestions = new Set();
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let isReviewMode = false;
+
+        function startExam() {
+            const inputVal = document.getElementById('json-input').value.trim();
+            let sourceBank = defaultItemBank;
+
+            if (inputVal) {
+                try {
+                    sourceBank = JSON.parse(inputVal);
+                } catch (e) {
+                    alert('Invalid JSON format provided. Please check your syntax or leave blank to use default items.');
+                    return;
+                }
+            }
+
+            const requestedCount = parseInt(document.getElementById('select-count').value);
+            // Shuffle and slice according to requested count
+            activeItems = [...sourceBank].sort(() => 0.5 - Math.random()).slice(0, requestedCount);
+            if (activeItems.length === 0) activeItems = defaultItemBank;
+
+            currentIndex = 0;
+            userAnswers = {};
+            flaggedQuestions.clear();
+            secondsElapsed = 0;
+            isReviewMode = false;
+
+            document.getElementById('view-setup').classList.add('hidden');
+            document.getElementById('view-results').classList.add('hidden');
+            document.getElementById('view-quiz').classList.remove('hidden');
+            document.getElementById('header-stats').classList.remove('hidden');
+
+            startTimer();
+            renderQuestion();
+            renderPalette();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const hrs = String(Math.floor(secondsElapsed / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((secondsElapsed % 3600) / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('timer-display').textContent = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function renderQuestion() {
+            const item = activeItems[currentIndex];
+            document.getElementById('question-domain').textContent = item.domain || 'General Nursing';
+            document.getElementById('question-number-label').textContent = `Question ${currentIndex + 1} of ${activeItems.length}`;
+            document.getElementById('question-id-badge').textContent = `ID: #${item.id || currentIndex + 1}`;
+            document.getElementById('question-text').textContent = item.question;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            item.options.forEach((opt, idx) => {
+                const isSelected = userAnswers[currentIndex] === idx;
+                const isCorrectOpt = item.correct === idx;
+
+                let btnClass = "w-full text-left p-4 rounded-xl border text-sm transition flex items-start gap-3 ";
+                if (isReviewMode) {
+                    if (isCorrectOpt) {
+                        btnClass += "bg-emerald-900/40 border-emerald-600 text-emerald-200 font-medium";
+                    } else if (isSelected && !isCorrectOpt) {
+                        btnClass += "bg-rose-900/40 border-rose-600 text-rose-200";
+                    } else {
+                        btnClass += "bg-slate-900 border-slate-700 text-slate-300 opacity-70";
+                    }
+                } else {
+                    if (isSelected) {
+                        btnClass += "bg-teal-900/50 border-teal-600 text-white font-medium shadow-md";
+                    } else {
+                        btnClass += "bg-slate-900 hover:bg-slate-700/50 border-slate-700 text-slate-300";
+                    }
+                }
+
+                const letter = String.fromCharCode(65 + idx);
+                container.innerHTML += `
+                    <button onclick="selectOption(${idx})" ${isReviewMode ? 'disabled' : ''} class="${btnClass}">
+                        <span class="font-bold w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 text-xs text-teal-400">${letter}</span>
+                        <span class="leading-relaxed mt-0.5">${opt}</span>
+                    </button>
+                `;
+            });
+
+            // Rational display
+            const rationalBox = document.getElementById('rational-box');
+            if (isReviewMode || userAnswers[currentIndex] !== undefined) {
+                rationalBox.classList.remove('hidden');
+                document.getElementById('rational-text').textContent = item.rational || "No rationale provided.";
+            } else {
+                rationalBox.classList.add('hidden');
+            }
+
+            // Flag button update
+            const flagBtn = document.getElementById('btn-flag');
+            if (flaggedQuestions.has(currentIndex)) {
+                flagBtn.className = "bg-gold-500 text-slate-900 font-semibold px-4 py-2.5 rounded-xl text-sm transition shadow-md";
+                flagBtn.textContent = "Flagged";
+            } else {
+                flagBtn.className = "bg-slate-700 hover:bg-slate-600 text-gold-500 border border-slate-600 px-4 py-2.5 rounded-xl text-sm transition";
+                flagBtn.textContent = "Flag for Review";
+            }
+
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            document.getElementById('progress-display').textContent = `${Object.keys(userAnswers).length}/${activeItems.length}`;
+            renderPalette();
+        }
+
+        function selectOption(idx) {
+            userAnswers[currentIndex] = idx;
+            renderQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentIndex < activeItems.length - 1) {
+                currentIndex++;
+                renderQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderQuestion();
+            }
+        }
+
+        function toggleFlag() {
+            if (flaggedQuestions.has(currentIndex)) {
+                flaggedQuestions.delete(currentIndex);
+            } else {
+                flaggedQuestions.add(currentIndex);
+            }
+            renderQuestion();
+        }
+
+        function renderPalette() {
+            const grid = document.getElementById('palette-grid');
+            grid.innerHTML = '';
+            activeItems.forEach((_, idx) => {
+                let bg = "bg-slate-700 text-slate-300 border-slate-600";
+                if (userAnswers[idx] !== undefined) bg = "bg-teal-600 text-white border-teal-500 font-bold";
+                if (flaggedQuestions.has(idx)) bg = "bg-gold-500 text-slate-900 font-bold border-gold-600";
+                if (currentIndex === idx) bg += " ring-2 ring-white";
+
+                grid.innerHTML += `
+                    <button onclick="jumpToQuestion(${idx})" class="h-9 rounded-lg border text-xs font-mono transition ${bg}">
+                        ${idx + 1}
+                    </button>
+                `;
+            });
+        }
+
+        function jumpToQuestion(idx) {
+            currentIndex = idx;
+            renderQuestion();
+        }
+
+        function togglePalette() {
+            const sidebar = document.getElementById('palette-sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
+        function confirmSubmitExam() {
+            const unanswered = activeItems.length - Object.keys(userAnswers).length;
+            if (unanswered > 0 && !isReviewMode) {
+                if (!confirm(`You have ${unanswered} unanswered questions. Are you sure you want to submit?`)) return;
+            }
+            submitExam();
+        }
+
+        function submitExam() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            let correctCount = 0;
+            activeItems.forEach((item, idx) => {
+                if (userAnswers[idx] === item.correct) correctCount++;
+            });
+
+            const score = Math.round((correctCount / activeItems.length) * 100);
+            const passed = score >= 70;
+
+            document.getElementById('res-score').textContent = `${score}%`;
+            const statusEl = document.getElementById('res-status');
+            statusEl.textContent = passed ? 'PASS' : 'FAIL';
+            statusEl.className = `text-2xl font-bold ${passed ? 'text-emerald-500' : 'text-rose-500'}`;
+
+            document.getElementById('res-total').textContent = activeItems.length;
+            document.getElementById('res-correct').textContent = correctCount;
+            document.getElementById('res-incorrect').textContent = activeItems.length - correctCount;
+            document.getElementById('res-time').textContent = document.getElementById('timer-display').textContent;
+
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-results').classList.remove('hidden');
+            document.getElementById('header-stats').classList.add('hidden');
+        }
+
+        function reviewExam() {
+            isReviewMode = true;
+            currentIndex = 0;
+            document.getElementById('view-results').classList.add('hidden');
+            document.getElementById('view-quiz').classList.remove('hidden');
+            document.getElementById('header-stats').classList.remove('hidden');
+            renderQuestion();
+            renderPalette();
+        }
+
+        function resetExam() {
+            document.getElementById('view-results').classList.add('hidden');
+            document.getElementById('view-setup').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
